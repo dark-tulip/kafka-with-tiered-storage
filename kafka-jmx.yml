@@ -1,0 +1,19 @@
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+rules:
+  - pattern: "kafka.server<type=BrokerTopicMetrics, name=(.+)PerSec, topic=(.+)><>Count"
+    name: kafka_broker_topic_$1_total
+    labels:
+      topic: "$2"
+    type: COUNTER
+  - pattern: "kafka.network<type=RequestMetrics, name=RequestsPerSec, request=(.+)><>Count"
+    name: kafka_network_requests_total
+    labels:
+      request: "$1"
+    type: COUNTER
+  - pattern: "kafka.server<type=ReplicaManager, name=UnderReplicatedPartitions><>Value"
+    name: kafka_under_replicated_partitions
+    type: GAUGE
+  - pattern: "kafka.server<type=FetchSessionCache, name=NumIncrementalFetchSessions><>Value"
+    name: kafka_fetch_sessions
+    type: GAUGE
