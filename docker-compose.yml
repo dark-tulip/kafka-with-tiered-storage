@@ -1,185 +1,208 @@
-version: "3.9"
+version: "3.8"
 
 services:
   kafka-1:
     image: apache/kafka:3.7.0
     container_name: kafka-1
-    ports:
-      - "19092:9092"
-      - "19094:9094"   # JMX exporter
+    hostname: kafka-1
+    networks: [ knet ]
+    ports: [ "19092:9092","19094:9094" ]  # 9094 = jmx_exporter agent
     environment:
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_NODE_ID: 1
-      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:29093,2@kafka-2:29093,3@kafka-3:29093"
       KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:29093"
       KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-1:9092"
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LOG_DIRS: /var/lib/kafka/data
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
-
-      # --- Tiered Storage (KIP-405 / Remote Log Storage) ---
-      KAFKA_REMOTE_LOG_STORAGE_SYSTEM_ENABLE: "true"
-      KAFKA_REMOTE_STORAGE_ENABLE: "true"
-      # класс RSM от Aiven (fat-jar в classpath):
-      KAFKA_REMOTE_LOG_STORAGE_MANAGER_CLASS_NAME: "io.aiven.kafka.tieredstorage.RemoteStorageManager"
-      # RLMM используем topic-based (в Kafka по умолчанию имеется):
-      KAFKA_REMOTE_LOG_METADATA_MANAGER_CLASS_NAME: "org.apache.kafka.server.log.remote.metadata.storage.TopicBasedRemoteLogMetadataManager"
-      # S3 настройки для RSM:
-      KAFKA_REMOTE_STORAGE_MANAGER_CONFIG: >-
-        rsm.cloud=s3,
-        rsm.s3.bucket=${S3_BUCKET},
-        rsm.s3.region=${S3_REGION},
-        rsm.s3.endpoint=${S3_ENDPOINT},
-        rsm.s3.path_style_access=${S3_PATH_STYLE},
-        rsm.s3.credentials.provider=static,
-        rsm.s3.access_key_id=${S3_ACCESS_KEY},
-        rsm.s3.secret_access_key=${S3_SECRET_KEY}
-
-      # --- housekeeping / сегменты ---
-      KAFKA_LOG_SEGMENT_BYTES: 134217728       # 128MiB
-      KAFKA_SEGMENT_MS: 600000                 # 10 мин (ускорит выгрузку)
-      KAFKA_RETENTION_MS: 604800000            # 7 дней
-      # локальное «горячее окно» можно контролить retention.bytes на топике
-
-      # --- JMX Exporter ---
-      KAFKA_OPTS: >-
-        -javaagent:/opt/jmx/jmx_prometheus_javaagent.jar=9094:/opt/jmx/kafka-jmx.yml
-        -Djdk.tls.client.protocols=TLSv1.2
-      KAFKA_JMX_PORT: 9999
-
-      # --- Kraft storage bootstrap (первый запуск) ---
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:29093,2@kafka-2:29093,3@kafka-3:29093"
       KAFKA_INITIAL_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:29093,2@kafka-2:29093,3@kafka-3:29093"
       KAFKA_CONTROLLER_QUORUM_REQUEST_TIMEOUT_MS: 30000
-    volumes:
-      - ./data/kafka-1:/var/lib/kafka/data
-      - ./jmx_prometheus_javaagent.jar:/opt/jmx/jmx_prometheus_javaagent.jar
-      - ./kafka-jmx.yml:/opt/jmx/kafka-jmx.yml
-      - ./tiered-storage-for-apache-kafka.jar:/opt/kafka/libs/tiered-storage-for-apache-kafka.jar
-    depends_on: []
-    networks: [knet]
 
-  kafka-2:
-    image: apache/kafka:3.7.0
-    container_name: kafka-2
-    ports: ["29092:9092","29094:9094"]
-    environment:
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_NODE_ID: 2
-      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:29093,2@kafka-2:29093,3@kafka-3:29093"
-      KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:29093"
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-2:9092"
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LOG_DIRS: /var/lib/kafka/data
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
-
-      KAFKA_REMOTE_LOG_STORAGE_SYSTEM_ENABLE: "true"
-      KAFKA_REMOTE_STORAGE_ENABLE: "true"
-      KAFKA_REMOTE_LOG_STORAGE_MANAGER_CLASS_NAME: "io.aiven.kafka.tieredstorage.RemoteStorageManager"
-      KAFKA_REMOTE_LOG_METADATA_MANAGER_CLASS_NAME: "org.apache.kafka.server.log.remote.metadata.storage.TopicBasedRemoteLogMetadataManager"
-      KAFKA_REMOTE_STORAGE_MANAGER_CONFIG: >-
-        rsm.cloud=s3,
-        rsm.s3.bucket=${S3_BUCKET},
-        rsm.s3.region=${S3_REGION},
-        rsm.s3.endpoint=${S3_ENDPOINT},
-        rsm.s3.path_style_access=${S3_PATH_STYLE},
-        rsm.s3.credentials.provider=static,
-        rsm.s3.access_key_id=${S3_ACCESS_KEY},
-        rsm.s3.secret_access_key=${S3_SECRET_KEY}
 
       KAFKA_LOG_SEGMENT_BYTES: 134217728
       KAFKA_SEGMENT_MS: 600000
       KAFKA_RETENTION_MS: 604800000
+
+      # ---- Remote Log Storage (RSM) ----
+      KAFKA_REMOTE_LOG_STORAGE_SYSTEM_ENABLE: "true"
+      KAFKA_REMOTE_LOG_STORAGE_MANAGER_CLASS_NAME: "io.aiven.kafka.tieredstorage.RemoteStorageManager"
+      KAFKA_REMOTE_LOG_STORAGE_MANAGER_CLASS_PATH: "/opt/kafka/plugins/aiven-rsm/core/*:/opt/kafka/plugins/aiven-rsm/s3/*"
+      KAFKA_REMOTE_LOG_METADATA_MANAGER_CLASS_NAME: "org.apache.kafka.server.log.remote.metadata.storage.TopicBasedRemoteLogMetadataManager"
+      KAFKA_REMOTE_LOG_METADATA_MANAGER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_RSM_CONFIG_STORAGE_BACKEND_CLASS: "io.aiven.kafka.tieredstorage.storage.s3.S3Storage"
+      KAFKA_RSM_CONFIG_STORAGE_S3_BUCKET_NAME: "${S3_BUCKET}"
+      KAFKA_RSM_CONFIG_STORAGE_S3_REGION: "${S3_REGION}"
+      KAFKA_RSM_CONFIG_STORAGE_S3_ENDPOINT: "${S3_ENDPOINT}"
+      KAFKA_RSM_CONFIG_STORAGE_S3_PATH_STYLE_ACCESS: "${S3_PATH_STYLE}"
+      KAFKA_RSM_CONFIG_STORAGE_S3_CREDENTIALS_PROVIDER: "static"
+      KAFKA_RSM_CONFIG_STORAGE_S3_ACCESS_KEY_ID: "${S3_ACCESS_KEY}"
+      KAFKA_RSM_CONFIG_STORAGE_S3_SECRET_ACCESS_KEY: "${S3_SECRET_KEY}"
+      KAFKA_RSM_CONFIG_CHUNK_SIZE: "4194304"
+#      KAFKA_RSM_CONFIG_CHUNK_CACHE_CLASS: "io.aiven.kafka.tieredstorage.chunkmanager.cache.InMemoryChunkCache"
+#      KAFKA_RSM_CONFIG_CHUNK_CACHE_SIZE: "20000"
+#      KAFKA_RSM_CONFIG_CHUNK_RETENTION_MS: "1000"
+
+      # ---- JMX Exporter (javaagent) ----
+      KAFKA_OPTS: >-
+        -javaagent:/opt/jmx/jmx_prometheus_javaagent.jar=9094:/opt/jmx/kafka-jmx.yml
+      KAFKA_JMX_PORT: 9999
+    volumes:
+      - ./data/kafka-1:/var/lib/kafka/data
+      - ./aiven-rsm/core:/opt/kafka/plugins/aiven-rsm/core:ro
+      - ./aiven-rsm/s3:/opt/kafka/plugins/aiven-rsm/s3:ro
+      - ./monitoring/jmx_prometheus_javaagent.jar:/opt/jmx/jmx_prometheus_javaagent.jar:ro
+      - ./monitoring/kafka-jmx.yml:/opt/jmx/kafka-jmx.yml:ro
+    profiles: [ "default","rsm" ]
+
+  kafka-2:
+    image: apache/kafka:3.7.0
+    container_name: kafka-2
+    hostname: kafka-2
+    networks: [ knet ]
+    ports: [ "29092:9092","29094:9094" ]
+    environment:
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: 2
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:29093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-2:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:29093,2@kafka-2:29093,3@kafka-3:29093"
+      KAFKA_INITIAL_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:29093,2@kafka-2:29093,3@kafka-3:29093"
+
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+
+      KAFKA_LOG_SEGMENT_BYTES: 134217728
+      KAFKA_SEGMENT_MS: 600000
+      KAFKA_RETENTION_MS: 604800000
+
+      # RSM
+      KAFKA_REMOTE_LOG_STORAGE_SYSTEM_ENABLE: "true"
+      KAFKA_REMOTE_LOG_STORAGE_MANAGER_CLASS_NAME: "io.aiven.kafka.tieredstorage.RemoteStorageManager"
+      KAFKA_REMOTE_LOG_STORAGE_MANAGER_CLASS_PATH: "/opt/kafka/plugins/aiven-rsm/core/*:/opt/kafka/plugins/aiven-rsm/s3/*"
+      KAFKA_REMOTE_LOG_METADATA_MANAGER_CLASS_NAME: "org.apache.kafka.server.log.remote.metadata.storage.TopicBasedRemoteLogMetadataManager"
+      KAFKA_REMOTE_LOG_METADATA_MANAGER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_RSM_CONFIG_STORAGE_BACKEND_CLASS: "io.aiven.kafka.tieredstorage.storage.s3.S3Storage"
+      KAFKA_RSM_CONFIG_STORAGE_S3_BUCKET_NAME: "${S3_BUCKET}"
+      KAFKA_RSM_CONFIG_STORAGE_S3_REGION: "${S3_REGION}"
+      KAFKA_RSM_CONFIG_STORAGE_S3_ENDPOINT: "${S3_ENDPOINT}"
+      KAFKA_RSM_CONFIG_STORAGE_S3_PATH_STYLE_ACCESS: "${S3_PATH_STYLE}"
+      KAFKA_RSM_CONFIG_STORAGE_S3_CREDENTIALS_PROVIDER: "static"
+      KAFKA_RSM_CONFIG_STORAGE_S3_ACCESS_KEY_ID: "${S3_ACCESS_KEY}"
+      KAFKA_RSM_CONFIG_STORAGE_S3_SECRET_ACCESS_KEY: "${S3_SECRET_KEY}"
+      KAFKA_RSM_CONFIG_CHUNK_SIZE: "4194304"
 
       KAFKA_OPTS: >-
         -javaagent:/opt/jmx/jmx_prometheus_javaagent.jar=9094:/opt/jmx/kafka-jmx.yml
       KAFKA_JMX_PORT: 9999
     volumes:
       - ./data/kafka-2:/var/lib/kafka/data
-      - ./jmx_prometheus_javaagent.jar:/opt/jmx/jmx_prometheus_javaagent.jar:ro
-      - ./kafka-jmx.yml:/opt/jmx/kafka-jmx.yml:ro
-      - ./tiered-storage-for-apache-kafka.jar:/opt/kafka/libs/tiered-storage-for-apache-kafka.jar:ro
-    networks: [knet]
-    depends_on: [kafka-1]
+      - ./aiven-rsm/core:/opt/kafka/plugins/aiven-rsm/core:ro
+      - ./aiven-rsm/s3:/opt/kafka/plugins/aiven-rsm/s3:ro
+      - ./monitoring/jmx_prometheus_javaagent.jar:/opt/jmx/jmx_prometheus_javaagent.jar:ro
+      - ./monitoring/kafka-jmx.yml:/opt/jmx/kafka-jmx.yml:ro
+    profiles: [ "default","rsm" ]
 
   kafka-3:
     image: apache/kafka:3.7.0
     container_name: kafka-3
-    ports: ["39092:9092","39094:9094"]
+    hostname: kafka-3
+    networks: [ knet ]
+    ports: [ "39092:9092","39094:9094" ]
     environment:
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_NODE_ID: 3
-      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:29093,2@kafka-2:29093,3@kafka-3:29093"
       KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:29093"
       KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-3:9092"
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:29093,2@kafka-2:29093,3@kafka-3:29093"
+      KAFKA_INITIAL_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:29093,2@kafka-2:29093,3@kafka-3:29093"
+
       KAFKA_LOG_DIRS: /var/lib/kafka/data
 
+      # RSM
       KAFKA_REMOTE_LOG_STORAGE_SYSTEM_ENABLE: "true"
-      KAFKA_REMOTE_STORAGE_ENABLE: "true"
       KAFKA_REMOTE_LOG_STORAGE_MANAGER_CLASS_NAME: "io.aiven.kafka.tieredstorage.RemoteStorageManager"
+      KAFKA_REMOTE_LOG_STORAGE_MANAGER_CLASS_PATH: "/opt/kafka/plugins/aiven-rsm/core/*:/opt/kafka/plugins/aiven-rsm/s3/*"
       KAFKA_REMOTE_LOG_METADATA_MANAGER_CLASS_NAME: "org.apache.kafka.server.log.remote.metadata.storage.TopicBasedRemoteLogMetadataManager"
-      KAFKA_REMOTE_STORAGE_MANAGER_CONFIG: >-
-        rsm.cloud=s3,
-        rsm.s3.bucket=${S3_BUCKET},
-        rsm.s3.region=${S3_REGION},
-        rsm.s3.endpoint=${S3_ENDPOINT},
-        rsm.s3.path_style_access=${S3_PATH_STYLE},
-        rsm.s3.credentials.provider=static,
-        rsm.s3.access_key_id=${S3_ACCESS_KEY},
-        rsm.s3.secret_access_key=${S3_SECRET_KEY}
-
-      KAFKA_LOG_SEGMENT_BYTES: 134217728
-      KAFKA_SEGMENT_MS: 600000
-      KAFKA_RETENTION_MS: 604800000
+      KAFKA_REMOTE_LOG_METADATA_MANAGER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_RSM_CONFIG_STORAGE_BACKEND_CLASS: "io.aiven.kafka.tieredstorage.storage.s3.S3Storage"
+      KAFKA_RSM_CONFIG_STORAGE_S3_BUCKET_NAME: "${S3_BUCKET}"
+      KAFKA_RSM_CONFIG_STORAGE_S3_REGION: "${S3_REGION}"
+      KAFKA_RSM_CONFIG_STORAGE_S3_ENDPOINT: "${S3_ENDPOINT}"
+      KAFKA_RSM_CONFIG_STORAGE_S3_PATH_STYLE_ACCESS: "${S3_PATH_STYLE}"
+      KAFKA_RSM_CONFIG_STORAGE_S3_CREDENTIALS_PROVIDER: "static"
+      KAFKA_RSM_CONFIG_STORAGE_S3_ACCESS_KEY_ID: "${S3_ACCESS_KEY}"
+      KAFKA_RSM_CONFIG_STORAGE_S3_SECRET_ACCESS_KEY: "${S3_SECRET_KEY}"
+      KAFKA_RSM_CONFIG_CHUNK_SIZE: "4194304"
 
       KAFKA_OPTS: >-
         -javaagent:/opt/jmx/jmx_prometheus_javaagent.jar=9094:/opt/jmx/kafka-jmx.yml
       KAFKA_JMX_PORT: 9999
     volumes:
       - ./data/kafka-3:/var/lib/kafka/data
-      - ./jmx_prometheus_javaagent.jar:/opt/jmx/jmx_prometheus_javaagent.jar:ro
-      - ./kafka-jmx.yml:/opt/jmx/kafka-jmx.yml:ro
-      - ./tiered-storage-for-apache-kafka.jar:/opt/kafka/libs/tiered-storage-for-apache-kafka.jar:ro
-    networks: [knet]
-    depends_on: [kafka-2]
+      - ./aiven-rsm/core:/opt/kafka/plugins/aiven-rsm/core:ro
+      - ./aiven-rsm/s3:/opt/kafka/plugins/aiven-rsm/s3:ro
+      - ./monitoring/jmx_prometheus_javaagent.jar:/opt/jmx/jmx_prometheus_javaagent.jar:ro
+      - ./monitoring/kafka-jmx.yml:/opt/jmx/kafka-jmx.yml:ro
+    profiles: [ "default","rsm" ]
 
+  # --- Kafka exporter (consumer-lag и пр.) ---
   kafka-exporter:
     image: danielqsj/kafka-exporter:v1.7.0
+    container_name: kafka-exporter
     command:
       - --kafka.server=kafka-1:9092
       - --kafka.server=kafka-2:9092
       - --kafka.server=kafka-3:9092
-    ports:
-      - "9308:9308"
+    ports: [ "9308:9308" ]
+    networks: [ knet ]
+    depends_on: [ kafka-1, kafka-2, kafka-3 ]
+    profiles: [ "monitoring" ]
 
-    networks: [knet]
-    depends_on: [kafka-1, kafka-2, kafka-3]
-
+  # --- Prometheus ---
   prometheus:
     image: prom/prometheus:v2.55.0
     container_name: prometheus
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    ports:
-      - "9090:9090"
-    networks: [knet]
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports: [ "9090:9090" ]
+    networks: [ knet ]
+    depends_on: [ kafka-exporter ]
+    profiles: [ "monitoring" ]
 
+  # --- Grafana ---
   grafana:
     image: grafana/grafana:11.2.0
     container_name: grafana
-    ports:
-      - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
-    depends_on: [prometheus]
-    networks: [knet]
+    ports: [ "3000:3000" ]
+    networks: [ knet ]
+    depends_on: [ prometheus ]
+    profiles: [ "monitoring" ]
+
+  # --- опционально: MinIO под локальный S3 ---
+  minio:
+    image: quay.io/minio/minio:RELEASE.2024-11-07T00-52-20Z
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports: [ "9000:9000","9001:9001" ]
+    volumes:
+      - ./data/minio:/data
+    networks: [ knet ]
+    profiles: [ "minio" ]
 
 networks:
-  knet: {}
+  knet: { }
