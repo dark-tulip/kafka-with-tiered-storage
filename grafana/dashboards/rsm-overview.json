@@ -1,0 +1,36 @@
+{
+  "id": null,
+  "title": "RSM / Tiered Storage",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "type": "graph",
+      "title": "RSM Uploads (segments)",
+      "targets": [
+        {
+          "expr": "sum(rate(aiven_rsm_SegmentsUploaded[1m]))"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Remote Fetch Latency (p50)",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.5, sum(rate(aiven_rsm_RemoteFetchLatency_bucket[1m])) by (le))"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Cache Hit Ratio",
+      "targets": [
+        {
+          "expr": "sum(rate(aiven_rsm_ChunkCacheHits[5m])) / sum(rate(aiven_rsm_ChunkCacheRequests[5m]))"
+        }
+      ]
+    }
+  ]
+}

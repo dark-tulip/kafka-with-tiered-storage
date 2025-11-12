@@ -1,5 +1,12 @@
-#!/usr/bin/env bash
-set -euo pipefail
-# немного данных кинем и прочитаем
-docker exec -i kafka-1 bash -lc 'seq 1 1000 | kafka-console-producer.sh --bootstrap-server kafka-1:9092 --topic demo.rsm >/dev/null'
-docker exec -it kafka-2 bash -lc 'kafka-console-consumer.sh --bootstrap-server kafka-2:9092 --topic demo.rsm --from-beginning --max-messages 10'
+docker exec -e KAFKA_OPTS="" -it kafka-1 /opt/kafka/bin/kafka-producer-perf-test.sh \
+  --topic demo.load \
+  --num-records 200000 \
+  --record-size 512 \
+  --throughput -1 \
+  --producer-props \
+    bootstrap.servers=kafka-1:9092 \
+    acks=1 \
+    linger.ms=5 \
+    batch.size=131072 \
+    compression.type=lz4
+

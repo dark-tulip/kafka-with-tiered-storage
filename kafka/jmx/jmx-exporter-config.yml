@@ -1,0 +1,35 @@
+# NOTE: hostPort/jmxUrl MUST NOT be set in javaagent mode
+startDelaySeconds: 0
+ssl: false
+lowercaseOutputName: false
+lowercaseOutputLabelNames: false
+
+rules:
+  # Expose everything by default
+  - pattern: ".*"
+
+  # Topic rates
+  - pattern: "kafka.server<type=BrokerTopicMetrics, name=(.*)PerSec, topic=(.*)><>Count"
+    name: kafka_broker_topic_$1_total
+    labels:
+      topic: "$2"
+    type: COUNTER
+
+  # Replication health
+  - pattern: "kafka.server<type=ReplicaManager, name=UnderReplicatedPartitions><>Value"
+    name: kafka_under_replicated_partitions
+    type: GAUGE
+
+  # KRaft / Raft metrics
+  - pattern: "kafka.server<type=raft-metrics, name=(.*)><>Value"
+    name: kafka_raft_$1
+    type: GAUGE
+
+  - pattern: "kafka.controller<type=KafkaController, name=(.*)><>Value"
+    name: kafka_controller_$1
+    type: GAUGE
+
+  # Aiven RSM plugin (tiered storage)
+  - pattern: "io.aiven.kafka.tieredstorage<>(.*)"
+    name: aiven_rsm_$1
+    type: UNTYPED

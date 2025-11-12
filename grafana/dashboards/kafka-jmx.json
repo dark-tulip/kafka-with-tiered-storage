@@ -1,0 +1,36 @@
+{
+  "id": null,
+  "title": "Kafka JMX Overview",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Messages In Per Sec (by topic)",
+      "targets": [
+        {
+          "expr": "sum by (topic) (rate(kafka_broker_topic_messagesin_total[1m]))"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Under Replicated Partitions",
+      "targets": [
+        {
+          "expr": "kafka_under_replicated_partitions"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Raft Commit Index",
+      "targets": [
+        {
+          "expr": "kafka_raft_commit_index"
+        }
+      ]
+    }
+  ]
+}
