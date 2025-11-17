@@ -1,35 +1,99 @@
-# NOTE: hostPort/jmxUrl MUST NOT be set in javaagent mode
+---
 startDelaySeconds: 0
-ssl: false
-lowercaseOutputName: false
-lowercaseOutputLabelNames: false
+whitelistObjectNames:
+  - "*:*"
 
 rules:
-  # Expose everything by default
-  - pattern: ".*"
-
-  # Topic rates
-  - pattern: "kafka.server<type=BrokerTopicMetrics, name=(.*)PerSec, topic=(.*)><>Count"
-    name: kafka_broker_topic_$1_total
+  # ---------- JVM ----------
+  - pattern: 'java.lang<type=Memory><>(HeapMemoryUsage|NonHeapMemoryUsage)'
+    name: jvm_memory_bytes_used
+    attrNameSnakeCase: true
+    value: '$$["used"]'
+    type: GAUGE
+  - pattern: 'java.lang<type=GarbageCollector,name=(.+)><>CollectionTime'
+    name: jvm_gc_collection_time_ms
     labels:
-      topic: "$2"
+      gc: "$1"
     type: COUNTER
+  - pattern: 'java.lang<type=GarbageCollector,name=(.+)><>CollectionCount'
+    name: jvm_gc_collection_count
+    labels:
+      gc: "$1"
+    type: COUNTER
+  - pattern: 'java.lang<type=Threading><>ThreadCount'
+    name: jvm_threads_count
+    type: GAUGE
 
-  # Replication health
-  - pattern: "kafka.server<type=ReplicaManager, name=UnderReplicatedPartitions><>Value"
+  # ---------- Core broker health ----------
+  - pattern: 'kafka.server<type=ReplicaManager,name=UnderReplicatedPartitions><>Value'
     name: kafka_under_replicated_partitions
     type: GAUGE
 
-  # KRaft / Raft metrics
-  - pattern: "kafka.server<type=raft-metrics, name=(.*)><>Value"
+  - pattern: 'kafka.server<type=ReplicaManager,name=OfflinePartitionsCount><>Value'
+    name: kafka_offline_partitions_count
+    type: GAUGE
+  # ---------- Broker traffic (bytes/messages) через OneMinuteRate ----------
+  # all topics, если Kafka даёт без topic=
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=(BytesInPerSec|BytesOutPerSec)><>OneMinuteRate'
+    name: kafka_broker_bytes_rate
+    labels:
+      direction: "$1"
+    type: GAUGE
+
+  # per-topic
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=(BytesInPerSec|BytesOutPerSec), topic=(.+)><>OneMinuteRate'
+    name: kafka_broker_topic_bytes_rate
+    labels:
+      direction: "$1"
+      topic: "$2"
+    type: GAUGE
+
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=MessagesInPerSec, topic=(.+)><>OneMinuteRate'
+    name: kafka_broker_messages_in_rate
+    labels:
+      topic: "$1"
+    type: GAUGE
+
+  - pattern: 'kafka.controller<type=KafkaController,name=ActiveControllerCount><>Value'
+    name: kafka_active_controller_count
+    type: GAUGE
+
+  # ---------- Network / request pool ----------
+  - pattern: 'kafka.network<type=Processor,name=IdlePercent,networkProcessor=(.+)><>Value'
+    name: kafka_network_processor_idle_ratio
+    labels:
+      processor: "$1"
+    type: GAUGE
+
+  # ---------- KRaft / RSM: kafka.raft ----------
+  # Generic: expose every numeric Value under KafkaRaftMetrics as its own metric name.
+  - pattern: 'kafka.raft<type=KafkaRaftMetrics(?:,.*)?, name=([A-Za-z0-9_]+)><>Value'
     name: kafka_raft_$1
     type: GAUGE
 
-  - pattern: "kafka.controller<type=KafkaController, name=(.*)><>Value"
-    name: kafka_controller_$1
+  # Optional: per-node metrics when nodeId is present (captured as label).
+  - pattern: 'kafka.raft<type=KafkaRaftMetrics, nodeId=([0-9]+), name=([A-Za-z0-9_]+)><>Value'
+    name: kafka_raft_$2
+    labels:
+      node_id: "$1"
     type: GAUGE
 
-  # Aiven RSM plugin (tiered storage)
-  - pattern: "io.aiven.kafka.tieredstorage<>(.*)"
-    name: aiven_rsm_$1
-    type: UNTYPED
+  # ---------- Quorum Controller ----------
+  # Some controllers expose metrics in kafka.controller with different types/names.
+  - pattern: 'kafka.controller<type=QuorumControllerMetrics, name=([A-Za-z0-9_]+)><>Value'
+    name: kafka_quorum_controller_$1
+    type: GAUGE
+
+  # ---------- Fallbacks for other kafka.* gauges with a Value attribute ----------
+  - pattern: 'kafka\.[^<]+<type=[^,>]+(?:,[^>]+)?, name=([A-Za-z0-9_]+)><>Value'
+    name: kafka_$1
+    type: GAUGE
+
+  # ----- Aiven Tiered Storage (RSM) -----
+  - pattern: 'io\.aiven\..*<[^>]*><>Count'
+    name: aiven_rsm_count
+    labels:
+      mbean: "$0"
+    type: COUNTER
+    attrNameSnakeCase: true
+
