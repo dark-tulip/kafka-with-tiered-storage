@@ -1,99 +1,49 @@
----
 startDelaySeconds: 0
 whitelistObjectNames:
   - "*:*"
 
 rules:
-  # ---------- JVM ----------
-  - pattern: 'java.lang<type=Memory><>(HeapMemoryUsage|NonHeapMemoryUsage)'
-    name: jvm_memory_bytes_used
-    attrNameSnakeCase: true
+  # ---------- JVM (Унифицировано) ----------
+  # jvm_memory_used_bytes{area="heap|nonheap"}
+  - pattern: 'java\.lang<type=Memory><(Heap|NonHeap)MemoryUsage>'
+    name: jvm_memory_used_bytes
     value: '$$["used"]'
+    labels:
+      area: "$1"
     type: GAUGE
-  - pattern: 'java.lang<type=GarbageCollector,name=(.+)><>CollectionTime'
-    name: jvm_gc_collection_time_ms
-    labels:
-      gc: "$1"
-    type: COUNTER
-  - pattern: 'java.lang<type=GarbageCollector,name=(.+)><>CollectionCount'
-    name: jvm_gc_collection_count
-    labels:
-      gc: "$1"
-    type: COUNTER
-  - pattern: 'java.lang<type=Threading><>ThreadCount'
+
+  # jvm_threads_count
+  - pattern: 'java\.lang<type=Threading><>ThreadCount'
     name: jvm_threads_count
     type: GAUGE
 
-  # ---------- Core broker health ----------
-  - pattern: 'kafka.server<type=ReplicaManager,name=UnderReplicatedPartitions><>Value'
-    name: kafka_under_replicated_partitions
-    type: GAUGE
-
-  - pattern: 'kafka.server<type=ReplicaManager,name=OfflinePartitionsCount><>Value'
-    name: kafka_offline_partitions_count
-    type: GAUGE
-  # ---------- Broker traffic (bytes/messages) через OneMinuteRate ----------
-  # all topics, если Kafka даёт без topic=
-  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=(BytesInPerSec|BytesOutPerSec)><>OneMinuteRate'
+  # ---------- Broker traffic (OneMinuteRate) ----------
+  # BytesIn/BytesOut total по брокеру
+  - pattern: 'kafka\.server<type=BrokerTopicMetrics, name=(BytesInPerSec|BytesOutPerSec)><>OneMinuteRate'
     name: kafka_broker_bytes_rate
     labels:
       direction: "$1"
     type: GAUGE
 
-  # per-topic
-  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=(BytesInPerSec|BytesOutPerSec), topic=(.+)><>OneMinuteRate'
-    name: kafka_broker_topic_bytes_rate
-    labels:
-      direction: "$1"
-      topic: "$2"
-    type: GAUGE
-
-  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=MessagesInPerSec, topic=(.+)><>OneMinuteRate'
+  # TODO
+  # MessagesInPerSec per-topic
+  - pattern: 'kafka\.server<type=BrokerTopicMetrics, name=MessagesInPerSec, topic=([a-zA-Z0-9\._-]+)><>OneMinuteRate'
     name: kafka_broker_messages_in_rate
     labels:
       topic: "$1"
     type: GAUGE
 
-  - pattern: 'kafka.controller<type=KafkaController,name=ActiveControllerCount><>Value'
-    name: kafka_active_controller_count
-    type: GAUGE
-
-  # ---------- Network / request pool ----------
-  - pattern: 'kafka.network<type=Processor,name=IdlePercent,networkProcessor=(.+)><>Value'
-    name: kafka_network_processor_idle_ratio
-    labels:
-      processor: "$1"
-    type: GAUGE
-
-  # ---------- KRaft / RSM: kafka.raft ----------
-  # Generic: expose every numeric Value under KafkaRaftMetrics as its own metric name.
-  - pattern: 'kafka.raft<type=KafkaRaftMetrics(?:,.*)?, name=([A-Za-z0-9_]+)><>Value'
-    name: kafka_raft_$1
-    type: GAUGE
-
-  # Optional: per-node metrics when nodeId is present (captured as label).
-  - pattern: 'kafka.raft<type=KafkaRaftMetrics, nodeId=([0-9]+), name=([A-Za-z0-9_]+)><>Value'
-    name: kafka_raft_$2
+  # ---------- Quorum Controller (Унифицировано) ----------
+  # Ловит все метрики Value из kafka.controller (QuorumControllerMetrics, KafkaController)
+  - pattern: 'kafka\.controller<type=[^,]+(?:, node-id=([0-9]+))?(?:,.*)?, name=([A-Za-z0-9_.-]+)><>Value'
+    name: kafka_controller_value
     labels:
       node_id: "$1"
+      metric: "$2"
     type: GAUGE
 
-  # ---------- Quorum Controller ----------
-  # Some controllers expose metrics in kafka.controller with different types/names.
-  - pattern: 'kafka.controller<type=QuorumControllerMetrics, name=([A-Za-z0-9_]+)><>Value'
-    name: kafka_quorum_controller_$1
-    type: GAUGE
-
-  # ---------- Fallbacks for other kafka.* gauges with a Value attribute ----------
-  - pattern: 'kafka\.[^<]+<type=[^,>]+(?:,[^>]+)?, name=([A-Za-z0-9_]+)><>Value'
+  # ---------- Универсальный fallback для всех kafka.* c Value (Обязательно без дополнительных групп!) ----------
+  # Отсюда приедут: UnderReplicatedPartitions, OfflinePartitionsCount, NetworkProcessorAvgIdlePercent и т.д.
+  - pattern: 'kafka\.[^<]+<type=[^,>]+(?:,[^>]+)?, name=([A-Za-z0-9_.-]+)><>Value'
     name: kafka_$1
     type: GAUGE
-
-  # ----- Aiven Tiered Storage (RSM) -----
-  - pattern: 'io\.aiven\..*<[^>]*><>Count'
-    name: aiven_rsm_count
-    labels:
-      mbean: "$0"
-    type: COUNTER
-    attrNameSnakeCase: true
-
