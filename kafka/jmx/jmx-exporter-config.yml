@@ -3,15 +3,6 @@ whitelistObjectNames:
   - "*:*"
 
 rules:
-  # ---------- JVM (Унифицировано) ----------
-  # jvm_memory_used_bytes{area="heap|nonheap"}
-  - pattern: 'java\.lang<type=Memory><(Heap|NonHeap)MemoryUsage>'
-    name: jvm_memory_used_bytes
-    value: '$$["used"]'
-    labels:
-      area: "$1"
-    type: GAUGE
-
   # jvm_threads_count
   - pattern: 'java\.lang<type=Threading><>ThreadCount'
     name: jvm_threads_count
@@ -25,7 +16,6 @@ rules:
       direction: "$1"
     type: GAUGE
 
-  # TODO
   # MessagesInPerSec per-topic
   - pattern: 'kafka\.server<type=BrokerTopicMetrics, name=MessagesInPerSec, topic=([a-zA-Z0-9\._-]+)><>OneMinuteRate'
     name: kafka_broker_messages_in_rate
@@ -46,4 +36,13 @@ rules:
   # Отсюда приедут: UnderReplicatedPartitions, OfflinePartitionsCount, NetworkProcessorAvgIdlePercent и т.д.
   - pattern: 'kafka\.[^<]+<type=[^,>]+(?:,[^>]+)?, name=([A-Za-z0-9_.-]+)><>Value'
     name: kafka_$1
+    type: GAUGE
+
+  - pattern: 'aiven\.kafka\.server\.tieredstorage<[^>]*?(?:, *topic=([^,>]+))?(?:, *partition=([0-9]+))?(?:, *name=([^,>]+))?[^>]*><>([A-Za-z0-9_.-]+)'
+    name: aiven_tiered_metric
+    labels:
+      topic: "$1"
+      partition: "$2"
+      bean_name: "$3"
+      attr: "$4"
     type: GAUGE

@@ -27,28 +27,20 @@ services:
   kafka:
     image: apache/kafka:3.9.0
     container_name: kafka
-    depends_on:
-      - minio
-      - create-minio-bucket
-    # только JMX/агент в env; ВСЁ остальное в server.properties
     environment:
-      KAFKA_JMX_PORT: "9999"
-      KAFKA_JMX_OPTS: >-
-        -Dcom.sun.management.jmxremote
-        -Dcom.sun.management.jmxremote.local.only=false
-        -Djava.rmi.server.hostname=kafka
-        -Dcom.sun.management.jmxremote.authenticate=false
-        -Dcom.sun.management.jmxremote.ssl=false
+      JMX_PORT: "9999"                     # включает удалённый коннектор
+      RMI_HOSTNAME: "localhost"
       KAFKA_OPTS: >-
+        -Djava.rmi.server.hostname=localhost
         -javaagent:/opt/jmx/jmx_prometheus_javaagent-1.0.1.jar=7071:/opt/jmx/jmx-exporter-config.yml
     ports:
-      - "9092:9092"   # Kafka PLAINTEXT
-      - "7071:7071"   # JMX exporter HTTP
+      - "9092:9092"   # Kafka
+      - "7071:7071"   # jmx_exporter HTTP
+      - "9999:9999"   # JMX/RMI для JConsole
     volumes:
       - ./kafka/data:/var/lib/kafka/data
       - ./kafka/server.properties:/opt/kafka/config/server.properties:ro
       - ./kafka/jmx:/opt/jmx:ro
-      # плагин Aiven RSM: пути совпадают со строкой class.path в server.properties
       - ./kafka/aiven/core-1.1.1:/opt/kafka/aiven/core-1.1.1:ro
       - ./kafka/aiven/s3-1.1.1:/opt/kafka/aiven/s3-1.1.1:ro
     command: >

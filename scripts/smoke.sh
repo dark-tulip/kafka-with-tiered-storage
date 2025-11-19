@@ -1,4 +1,5 @@
-docker exec -e KAFKA_OPTS="" -it kafka /opt/kafka/bin/kafka-producer-perf-test.sh \
+docker exec \
+  -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-producer-perf-test.sh \
                                          --topic test-tiered \
                                          --num-records 100000 \
                                          --throughput -1 \
