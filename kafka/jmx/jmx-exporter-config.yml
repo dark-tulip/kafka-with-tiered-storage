@@ -32,17 +32,22 @@ rules:
       metric: "$2"
     type: GAUGE
 
-  # ---------- Универсальный fallback для всех kafka.* c Value (Обязательно без дополнительных групп!) ----------
+  # ---------- Универсальный fallback для всех kafka.* c Value  ----------
   # Отсюда приедут: UnderReplicatedPartitions, OfflinePartitionsCount, NetworkProcessorAvgIdlePercent и т.д.
   - pattern: 'kafka\.[^<]+<type=[^,>]+(?:,[^>]+)?, name=([A-Za-z0-9_.-]+)><>Value'
     name: kafka_$1
     type: GAUGE
 
-  - pattern: 'aiven\.kafka\.server\.tieredstorage<[^>]*?(?:, *topic=([^,>]+))?(?:, *partition=([0-9]+))?(?:, *name=([^,>]+))?[^>]*><>([A-Za-z0-9_.-]+)'
-    name: aiven_tiered_metric
-    labels:
-      topic: "$1"
-      partition: "$2"
-      bean_name: "$3"
-      attr: "$4"
+  # Примеры метрик RSM:
+  - pattern: 'aiven\.kafka\.server\.tieredstorage<type=remote-storage-manager-metrics><>object-upload-bytes-rate'
+    name: aiven_tiered_object_upload_bytes_rate
     type: GAUGE
+
+  - pattern: 'aiven\.kafka\.server\.tieredstorage<type=remote-storage-manager-metrics><>object-upload-rate'
+    name: aiven_tiered_object_upload_rate
+    type: GAUGE
+
+  - pattern: 'aiven\.kafka\.server\.tieredstorage<type=remote-storage-manager-metrics><>object-upload-bytes-total'
+    name: aiven_tiered_object_upload_bytes_total
+    type: GAUGE
+
