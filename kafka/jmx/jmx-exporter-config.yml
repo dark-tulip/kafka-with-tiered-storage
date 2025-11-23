@@ -38,7 +38,7 @@ rules:
     name: kafka_$1
     type: GAUGE
 
-  # Примеры метрик RSM:
+  # RSM:
   - pattern: 'aiven\.kafka\.server\.tieredstorage<type=remote-storage-manager-metrics><>object-upload-bytes-rate'
     name: aiven_tiered_object_upload_bytes_rate
     type: GAUGE

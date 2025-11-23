@@ -18,15 +18,16 @@ services:
     image: minio/mc:latest
     depends_on:
       - minio
-    entrypoint: ["/bin/sh","-c"]
-    command: >-
-      mc alias set local http://minio:9000 minioadmin minioadmin123 &&
-      mc mb -p local/kafka-remote || true &&
-      mc anonymous set public local/kafka-remote || true
+    volumes:
+      - ./minio/init.sh:/init.sh:ro
+    entrypoint: ["/bin/sh", "/init.sh"]
+    restart: on-failure
 
   kafka:
     image: apache/kafka:3.9.0
     container_name: kafka
+    depends_on:
+      - minio
     environment:
       JMX_PORT: "9999"                     # включает удалённый коннектор
       RMI_HOSTNAME: "localhost"
