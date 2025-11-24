@@ -52,6 +52,18 @@ services:
       exec /opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties
       '
 
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: node-exporter
+    restart: unless-stopped
+    pid: host
+    volumes:
+      - /:/host:ro
+    command:
+      - '--path.rootfs=/host'
+    ports:
+      - "9100:9100"
+
   prometheus:
     image: prom/prometheus:v2.55.0
     container_name: prometheus

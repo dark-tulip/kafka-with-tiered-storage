@@ -2,40 +2,17 @@ startDelaySeconds: 0
 whitelistObjectNames:
   - "*:*"
 
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+
 rules:
   # jvm_threads_count
   - pattern: 'java\.lang<type=Threading><>ThreadCount'
     name: jvm_threads_count
     type: GAUGE
 
-  # ---------- Broker traffic (OneMinuteRate) ----------
-  # BytesIn/BytesOut total по брокеру
-  - pattern: 'kafka\.server<type=BrokerTopicMetrics, name=(BytesInPerSec|BytesOutPerSec)><>OneMinuteRate'
-    name: kafka_broker_bytes_rate
-    labels:
-      direction: "$1"
-    type: GAUGE
-
-  # MessagesInPerSec per-topic
-  - pattern: 'kafka\.server<type=BrokerTopicMetrics, name=MessagesInPerSec, topic=([a-zA-Z0-9\._-]+)><>OneMinuteRate'
-    name: kafka_broker_messages_in_rate
-    labels:
-      topic: "$1"
-    type: GAUGE
-
-  # ---------- Quorum Controller (Унифицировано) ----------
-  # Ловит все метрики Value из kafka.controller (QuorumControllerMetrics, KafkaController)
-  - pattern: 'kafka\.controller<type=[^,]+(?:, node-id=([0-9]+))?(?:,.*)?, name=([A-Za-z0-9_.-]+)><>Value'
-    name: kafka_controller_value
-    labels:
-      node_id: "$1"
-      metric: "$2"
-    type: GAUGE
-
-  # ---------- Универсальный fallback для всех kafka.* c Value  ----------
-  # Отсюда приедут: UnderReplicatedPartitions, OfflinePartitionsCount, NetworkProcessorAvgIdlePercent и т.д.
-  - pattern: 'kafka\.[^<]+<type=[^,>]+(?:,[^>]+)?, name=([A-Za-z0-9_.-]+)><>Value'
-    name: kafka_$1
+  - pattern: 'java\.lang<type=OperatingSystem><>SystemLoadAverage'
+    name: kafka_server_kafkaserver_linux_load_avg_1m
     type: GAUGE
 
   # RSM:
@@ -49,5 +26,153 @@ rules:
 
   - pattern: 'aiven\.kafka\.server\.tieredstorage<type=remote-storage-manager-metrics><>object-upload-bytes-total'
     name: aiven_tiered_object_upload_bytes_total
+    type: GAUGE
+
+  # Любые операции вида "<op>-requests-total"
+  - pattern: 'aiven\.kafka\.server\.tieredstorage\.s3<type=s3-client-metrics><>([A-Za-z0-9-]+)-requests-total'
+    name: aiven_s3_requests_total
+    labels:
+      operation: "$1"
+    type: COUNTER
+
+  # Любые операции вида "<op>-requests-rate"
+  - pattern: 'aiven\.kafka\.server\.tieredstorage\.s3<type=s3-client-metrics><>([A-Za-z0-9-]+)-requests-rate'
+    name: aiven_s3_requests_rate
+    labels:
+      operation: "$1"
+    type: GAUGE
+
+  # ---------- Broker traffic (OneMinuteRate) ----------
+  # BytesIn/BytesOut total по брокеру
+  - pattern: 'kafka\.server<.*type=BrokerTopicMetrics.*name=(BytesInPerSec|BytesOutPerSec|BytesRejectedPerSec|ReplicationBytesInPerSec|ReplicationBytesOutPerSec).*topic="?([^",>]+)"?.*><>OneMinuteRate'
+    name: kafka_broker_bytes_rate
+    labels:
+      direction: "$1"
+      topic: "$2"
+    type: GAUGE
+
+  - pattern: 'kafka\.server<.*type=BrokerTopicMetrics.*name=(BytesInPerSec|BytesOutPerSec|BytesRejectedPerSec|ReplicationBytesInPerSec|ReplicationBytesOutPerSec).*><>OneMinuteRate'
+    name: kafka_broker_bytes_rate_total
+    labels:
+      direction: "$1"
+    type: GAUGE
+
+  # MessagesInPerSec per-topic
+  - pattern: 'kafka\.server<.*type=BrokerTopicMetrics.*name=MessagesInPerSec,\s*topic="?([^",>]+)"?.*><>OneMinuteRate'
+    name: kafka_broker_messages_in_rate
+    labels:
+      topic: "$1"
+    type: GAUGE
+
+  - pattern: 'kafka\.server<(?=.*type=BrokerTopicMetrics)(?=.*name=MessagesInPerSec)(?!.*topic=).*><>OneMinuteRate'
+    name: kafka_broker_messages_in_rate_total
+    type: GAUGE
+
+  # ---------- Follower replica lag (messages) ----------
+  - pattern: 'kafka\.server<.*type=FetcherLagMetrics.*name=ConsumerLag.*clientId=([^,>]+).*topic="?([^",>]+)"?.*partition=([0-9]+).*><>Value'
+    name: kafka_server_fetcherlagmetrics_consumerlag
+    labels:
+      client_id: "$1"
+      topic: "$2"
+      partition: "$3"
+    type: GAUGE
+
+
+  # ---------- BrokerTopicMetrics: Produce/Fetch requests ----------
+  - pattern: 'kafka\.server<.*type=BrokerTopicMetrics.*name=(TotalProduceRequestsPerSec|TotalFetchRequestsPerSec|TotalFetchConsumerRequestsPerSec|TotalFetchFollowerRequestsPerSec),\s*topic="?([^",>]+)"?.*><>OneMinuteRate'
+    name: kafka_server_brokertopicmetrics_$1_oneminuterate
+    labels:
+      topic: "$2"
+    type: GAUGE
+
+  # ---------- Socket Server (socket-server-metrics) ----------
+  - pattern: 'kafka\.server<type=socket-server-metrics(?:, listener=([^,>]+))?(?:, networkProcessor=([0-9]+))?.*><>([A-Za-z0-9_.-]+)'
+    name: kafka_server_socketservermetrics_$3
+    labels:
+      listener: "$1"
+      network_processor: "$2"
+    type: GAUGE
+
+  # ---------- LogAppendLatencyMs 99.9p (999thPercentile) ----------
+  - pattern: 'kafka\.server<(?=.*type=BrokerTopicMetrics)(?=.*name=LogAppendLatencyMs)(?!.*topic=).*><>999thPercentile'
+    name: kafka_server_brokertopicmetrics_logappendlatencymspercentile999_total
+    type: GAUGE
+
+  - pattern: 'kafka\.network<.*type=RequestMetrics.*name=RequestsPerSec.*request=([^,>]+).*><>OneMinuteRate'
+    name: kafka_network_requestmetrics_requestspersec_oneminuterate
+    labels:
+      request: "$1"
+    type: GAUGE
+
+  # kafka.network SocketServer gauges
+  - pattern: 'kafka\.network<.*type=SocketServer.*name=([A-Za-z0-9_.-]+).*><>Value'
+    name: kafka_network_socketserver_$1
+    type: GAUGE
+
+  # ---------- Quorum Controller (Унифицировано) ----------
+  # Ловит все метрики Value из kafka.controller (QuorumControllerMetrics, KafkaController)
+  - pattern: 'kafka\.controller<type=[^,]+(?:, node-id=([0-9]+))?(?:,.*)?, name=([A-Za-z0-9_.-]+)><>Value'
+    name: kafka_controller_value
+    labels:
+      node_id: "$1"
+      metric: "$2"
+    type: GAUGE
+
+  # Log cleaner / LogCleanerManager gauges
+  - pattern: 'kafka\.log<type=LogCleaner(?:Manager)?, name=([A-Za-z0-9_.-]+)(?:, logDirectory="?(.*?)"?)?><>Value'
+    name: kafka_logcleaner_$1
+    labels:
+      log_directory: "$2"
+    type: GAUGE
+
+  - pattern: 'kafka\.log<type=LogFlushStats, name=([A-Za-z0-9_.-]+)><>(Count|OneMinuteRate|MeanRate|Value)'
+    name: kafka_logflushstats_$1_$2
+    type: GAUGE
+
+  - pattern: 'kafka\.log<type=Log, name=([A-Za-z0-9_.-]+), topic=([^,]+), partition=([0-9]+)><>Value'
+    name: kafka_log_$1
+    labels:
+      topic: "$2"
+      partition: "$3"
+    type: GAUGE
+
+  # --- Request rate (RequestsPerSec) ---
+  - pattern: 'kafka\.network<.*type=RequestMetrics.*name=RequestsPerSec.*request=([^,>]+).*><>Count'
+    name: kafka_network_requestmetrics_requestspersec
+    labels:
+      request: "$1"
+    type: COUNTER
+
+  # --- Latency percentiles (TotalTimeMs) ---
+  - pattern: 'kafka\.network<type=RequestMetrics, name=TotalTimeMs, request=([A-Za-z0-9_-]+)><>99thPercentile'
+    name: kafka_network_requestmetrics_totaltimems_99p
+    labels:
+      request: "$1"
+    type: GAUGE
+
+  - pattern: 'kafka\.network<.*type=RequestMetrics.*name=ErrorsPerSec.*request=([^,>]+).*error=([^,>]+).*><>OneMinuteRate'
+    name: kafka_network_requestmetrics_errorspersec_oneminuterate
+    labels:
+      request: "$1"
+      error: "$2"
+    type: GAUGE
+
+  - pattern: 'kafka\.network<type=RequestMetrics, name=TotalTimeMs, request=([A-Za-z0-9_-]+)><>Mean'
+    name: kafka_network_requestmetrics_totaltimems_mean
+    labels:
+      request: "$1"
+    type: GAUGE
+
+  # --- Queue / local / remote times (часто используются в 24002) ---
+  - pattern: 'kafka\.network<type=RequestMetrics, name=(RequestQueueTimeMs|LocalTimeMs|RemoteTimeMs|ResponseQueueTimeMs|ResponseSendTimeMs|ThrottleTimeMs), request=([A-Za-z0-9_-]+)><>99thPercentile'
+    name: kafka_network_requestmetrics_$1_99p
+    labels:
+      request: "$2"
+    type: GAUGE
+
+  # ---------- Универсальный fallback для всех kafka.* c Value  ----------
+  # Отсюда приедут: UnderReplicatedPartitions, OfflinePartitionsCount, NetworkProcessorAvgIdlePercent и т.д.
+  - pattern: 'kafka\.[^<]+<type=[^,>]+(?:,[^>]+)?, name=([A-Za-z0-9_.-]+)><>Value'
+    name: kafka_$1
     type: GAUGE
 
