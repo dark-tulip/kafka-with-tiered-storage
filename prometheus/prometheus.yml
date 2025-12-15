@@ -5,12 +5,36 @@ global:
 scrape_configs:
   - job_name: kafka-broker-jmx
     static_configs:
-      - targets: ["kafka:7071"]
+      - targets: [ "kafka:7071" ]
 
   - job_name: prometheus
     static_configs:
-      - targets: ["prometheus:9090"]
+      - targets: [ "prometheus:9090" ]
 
   - job_name: node
     static_configs:
-      - targets: ["node-exporter:9100"]
+      - targets: [ "node-exporter:9100" ]
+
+  - job_name: minio-job
+    metrics_path: /minio/v2/metrics/cluster
+    scheme: http
+    static_configs:
+      - targets: ['localhost:9000']
+
+  - job_name: minio-job-bucket
+    metrics_path: /minio/v2/metrics/bucket
+    scheme: http
+    static_configs:
+      - targets: ['localhost:9000']
+
+  - job_name: minio-job-node
+    metrics_path: /minio/v2/metrics/node
+    scheme: http
+    static_configs:
+      - targets: [ 'localhost:9000' ]
+
+  - job_name: minio-job-resource
+    metrics_path: /minio/v2/metrics/resource
+    scheme: http
+    static_configs:
+      - targets: [ 'localhost:9000' ]

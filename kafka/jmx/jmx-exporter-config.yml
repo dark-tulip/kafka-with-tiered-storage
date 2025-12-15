@@ -58,7 +58,7 @@ rules:
     type: GAUGE
 
   # MessagesInPerSec per-topic
-  - pattern: 'kafka\.server<.*type=BrokerTopicMetrics.*name=MessagesInPerSec,\s*topic="?([^",>]+)"?.*><>OneMinuteRate'
+  - pattern: 'kafka\.server<.*type=BrokerTopicMetrics.*na me=MessagesInPerSec,\s*topic="?([^",>]+)"?.*><>OneMinuteRate'
     name: kafka_broker_messages_in_rate
     labels:
       topic: "$1"
