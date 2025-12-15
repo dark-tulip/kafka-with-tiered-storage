@@ -1,5 +1,5 @@
 docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS=  -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 \
-                                         --create --topic test-tiered2 \
+                                         --create --topic test-tiered \
                                          --partitions 1 --replication-factor 1 \
                                          --config remote.storage.enable=true \
                                          --config segment.bytes=524288 \
