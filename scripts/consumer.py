@@ -4,8 +4,8 @@ from kafka import KafkaConsumer
 import statistics
 
 consumer = KafkaConsumer(
-    "exp-tiered-1",
-    bootstrap_servers="localhost:9092",
+    "exp-tiered-3",
+    bootstrap_servers="localhost:19092",
     auto_offset_reset="earliest",
     enable_auto_commit=True,
     value_deserializer=lambda v: loads(v.decode("utf-8")),

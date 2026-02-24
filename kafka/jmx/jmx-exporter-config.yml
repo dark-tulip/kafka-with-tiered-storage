@@ -44,7 +44,7 @@ rules:
 
   # ---------- Broker traffic (OneMinuteRate) ----------
   # BytesIn/BytesOut total по брокеру
-  - pattern: 'kafka\.server<.*type=BrokerTopicMetrics.*name=(BytesInPerSec|BytesOutPerSec|BytesRejectedPerSec|ReplicationBytesInPerSec|ReplicationBytesOutPerSec).*topic="?([^",>]+)"?.*><>OneMinuteRate'
+  - pattern: 'kafka\.server<.*type=BrokerTopicMetrics.*name=(BytesInPerSec|BytesOutPerSec|BytesRejectedPerSec|ReplicationBytesInPerSec|ReplicationBytesOutPerSec|RemoteReadRequestsPerSec|RemoteBytesInPerSec|RemoteReadErrorPerSec|RemoteBytesOutPerSec|RemoteWriteErrorPerSec).*topic="?([^",>]+)"?.*><>OneMinuteRate'
     name: kafka_broker_bytes_rate
     labels:
       direction: "$1"
