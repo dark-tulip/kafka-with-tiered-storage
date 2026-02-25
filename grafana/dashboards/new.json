@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 5,
+  "id": 3,
   "links": [],
   "panels": [
     {
@@ -68,7 +68,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -112,7 +113,7 @@
         ]
       },
       "gridPos": {
-        "h": 6,
+        "h": 8,
         "w": 12,
         "x": 0,
         "y": 0
@@ -127,7 +128,7 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "sortBy": "Last",
+          "sortBy": "Total",
           "sortDesc": true
         },
         "tooltip": {
@@ -144,15 +145,45 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum by (api) (increase(minio_s3_requests_total{}[$__rate_interval]))",
+          "expr": "sum by (api) (increase(minio_s3_requests_total{}[$__range]))",
           "interval": "1m",
           "intervalFactor": 2,
           "legendFormat": "{{server,api}}",
           "range": true,
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": true,
+          "expr": "sum(increase(minio_s3_requests_total{api=~\"putobject|newmultipartupload|putobjectpart|completemultipartupload\"}[$__range]))",
+          "hide": false,
+          "interval": "1m",
+          "intervalFactor": 2,
+          "legendFormat": "PUT ops {{server,api}}",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": true,
+          "expr": "sum(increase(minio_s3_requests_total{api=~\"getobject|headobject\"}[$__range]))",
+          "hide": false,
+          "interval": "1m",
+          "intervalFactor": 2,
+          "legendFormat": "GET ops {{server,api}}",
+          "range": true,
+          "refId": "C"
         }
       ],
-      "title": "S3 API Request Rate",
+      "title": "S3 API Request Count",
       "type": "timeseries"
     },
     {
@@ -204,7 +235,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -304,7 +336,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -320,7 +353,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 6
+        "y": 8
       },
       "id": 1,
       "options": {
@@ -407,7 +440,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -451,7 +485,7 @@
           "editorMode": "code",
           "expr": "minio_bucket_usage_object_total",
           "instant": false,
-          "legendFormat": "{{label_name}}",
+          "legendFormat": "{{bucket}}",
           "range": true,
           "refId": "A"
         }
@@ -508,7 +542,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -524,7 +559,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 14
+        "y": 16
       },
       "id": 4,
       "options": {
@@ -557,7 +592,7 @@
           "refId": "A"
         }
       ],
-      "title": "Общее количество объектов в бакете",
+      "title": "Скорость поступления/чтения данных",
       "type": "timeseries"
     }
   ],
@@ -574,6 +609,6 @@
   "timezone": "browser",
   "title": "Diploma metrics",
   "uid": "bfdxhs70sv0g0a",
-  "version": 3,
+  "version": 4,
   "weekStart": ""
 }

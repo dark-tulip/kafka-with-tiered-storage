@@ -7,8 +7,8 @@ producer = KafkaProducer(
     value_serializer=lambda v: dumps(v).encode("utf-8"),
 )
 
-topic = "exp-tiered-3"
-rate = 1000  # сообщений в секунду
+topic = "exp-tiered-1"
+rate = 5000  # сообщений в секунду
 interval = 1.0 / rate
 
 while True:
