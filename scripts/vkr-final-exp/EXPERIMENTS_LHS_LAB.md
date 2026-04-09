@@ -21,8 +21,14 @@
 - remote.storage.enable: `true`
 - bootstrap.servers: `localhost:19092`
 - producer script: `producer_load.py`
+- consumer script: `consumer_load.py`
+- clean script: `clean.sh`
 - default LOAD_PROFILE: `write-heavy`
 - default DURATION_SEC: `3600`
+- default CONSUMER_MODE: `steady-state`
+- default WARMUP_SEC: `900`
+- default MEASURE_SEC: `2700`
+- default SLO_SEC: `0.2`
 - broker-level key for K_upl: `remote.log.manager.thread.pool.size`
 
 ## Общая таблица экспериментов
@@ -82,6 +88,7 @@
 ```bash
 export BROKER_K_UPL_KEY=remote.log.manager.thread.pool.size
 export BROKER_K_UPL_VALUE=1
+# apply the value in broker config and restart Kafka brokers
 ```
 
 ### Эксперименты группы
@@ -93,6 +100,12 @@ export BROKER_K_UPL_VALUE=1
 - H_local: `2 GB/partition`
 - K_upl: `1`
 - T_seg: `5 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -106,7 +119,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=300000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-001
@@ -116,11 +129,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-001
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-001
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-001
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-002
 
@@ -129,6 +164,12 @@ python producer_load.py
 - H_local: `5 GB/partition`
 - K_upl: `1`
 - T_seg: `1 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -142,7 +183,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=60000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-002
@@ -152,11 +193,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-002
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-002
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-002
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-003
 
@@ -165,6 +228,12 @@ python producer_load.py
 - H_local: `5 GB/partition`
 - K_upl: `1`
 - T_seg: `15 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -178,7 +247,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=900000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-003
@@ -188,11 +257,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-003
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-003
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-003
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-004
 
@@ -201,6 +292,12 @@ python producer_load.py
 - H_local: `2 GB/partition`
 - K_upl: `1`
 - T_seg: `15 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -214,7 +311,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=900000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-004
@@ -224,11 +321,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-004
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-004
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-004
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-005
 
@@ -237,6 +356,12 @@ python producer_load.py
 - H_local: `5 GB/partition`
 - K_upl: `1`
 - T_seg: `5 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -250,7 +375,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=300000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-005
@@ -260,11 +385,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-005
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-005
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-005
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-006
 
@@ -273,6 +420,12 @@ python producer_load.py
 - H_local: `1 GB/partition`
 - K_upl: `1`
 - T_seg: `1 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -286,7 +439,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=60000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-006
@@ -296,11 +449,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-006
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-006
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-006
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-007
 
@@ -309,6 +484,12 @@ python producer_load.py
 - H_local: `1 GB/partition`
 - K_upl: `1`
 - T_seg: `5 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -322,7 +503,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=300000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-007
@@ -332,11 +513,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-007
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-007
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-007
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-008
 
@@ -345,6 +548,12 @@ python producer_load.py
 - H_local: `2 GB/partition`
 - K_upl: `1`
 - T_seg: `1 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -358,7 +567,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=60000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-008
@@ -368,11 +577,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-008
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-008
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-008
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ## Group K_upl = 2
 
@@ -400,6 +631,7 @@ python producer_load.py
 ```bash
 export BROKER_K_UPL_KEY=remote.log.manager.thread.pool.size
 export BROKER_K_UPL_VALUE=2
+# apply the value in broker config and restart Kafka brokers
 ```
 
 ### Эксперименты группы
@@ -411,6 +643,12 @@ export BROKER_K_UPL_VALUE=2
 - H_local: `1 GB/partition`
 - K_upl: `2`
 - T_seg: `15 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -424,7 +662,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=900000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-009
@@ -434,11 +672,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-009
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-009
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-009
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-010
 
@@ -447,6 +707,12 @@ python producer_load.py
 - H_local: `5 GB/partition`
 - K_upl: `2`
 - T_seg: `1 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -460,7 +726,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=60000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-010
@@ -470,11 +736,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-010
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-010
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-010
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-011
 
@@ -483,6 +771,12 @@ python producer_load.py
 - H_local: `1 GB/partition`
 - K_upl: `2`
 - T_seg: `5 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -496,7 +790,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=300000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-011
@@ -506,11 +800,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-011
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-011
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-011
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-012
 
@@ -519,6 +835,12 @@ python producer_load.py
 - H_local: `1 GB/partition`
 - K_upl: `2`
 - T_seg: `15 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -532,7 +854,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=900000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-012
@@ -542,11 +864,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-012
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-012
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-012
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-013
 
@@ -555,6 +899,12 @@ python producer_load.py
 - H_local: `2 GB/partition`
 - K_upl: `2`
 - T_seg: `1 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -568,7 +918,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=60000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-013
@@ -578,11 +928,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-013
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-013
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-013
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-014
 
@@ -591,6 +963,12 @@ python producer_load.py
 - H_local: `5 GB/partition`
 - K_upl: `2`
 - T_seg: `5 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -604,7 +982,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=300000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-014
@@ -614,11 +992,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-014
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-014
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-014
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-015
 
@@ -627,6 +1027,12 @@ python producer_load.py
 - H_local: `1 GB/partition`
 - K_upl: `2`
 - T_seg: `1 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -640,7 +1046,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=60000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-015
@@ -650,11 +1056,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-015
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-015
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-015
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-016
 
@@ -663,6 +1091,12 @@ python producer_load.py
 - H_local: `2 GB/partition`
 - K_upl: `2`
 - T_seg: `15 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -676,7 +1110,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=900000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-016
@@ -686,11 +1120,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-016
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-016
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-016
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ## Group K_upl = 4
 
@@ -718,6 +1174,7 @@ python producer_load.py
 ```bash
 export BROKER_K_UPL_KEY=remote.log.manager.thread.pool.size
 export BROKER_K_UPL_VALUE=4
+# apply the value in broker config and restart Kafka brokers
 ```
 
 ### Эксперименты группы
@@ -729,6 +1186,12 @@ export BROKER_K_UPL_VALUE=4
 - H_local: `1 GB/partition`
 - K_upl: `4`
 - T_seg: `1 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -742,7 +1205,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=60000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-017
@@ -752,11 +1215,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-017
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-017
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-017
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-018
 
@@ -765,6 +1250,12 @@ python producer_load.py
 - H_local: `1 GB/partition`
 - K_upl: `4`
 - T_seg: `5 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -778,7 +1269,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=300000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-018
@@ -788,11 +1279,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-018
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-018
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-018
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-019
 
@@ -801,6 +1314,12 @@ python producer_load.py
 - H_local: `2 GB/partition`
 - K_upl: `4`
 - T_seg: `15 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -814,7 +1333,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=900000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-019
@@ -824,11 +1343,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-019
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-019
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-019
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-020
 
@@ -837,6 +1378,12 @@ python producer_load.py
 - H_local: `2 GB/partition`
 - K_upl: `4`
 - T_seg: `1 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -850,7 +1397,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=60000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-020
@@ -860,11 +1407,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-020
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-020
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-020
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-021
 
@@ -873,6 +1442,12 @@ python producer_load.py
 - H_local: `5 GB/partition`
 - K_upl: `4`
 - T_seg: `15 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -886,7 +1461,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=900000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-021
@@ -896,11 +1471,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-021
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-021
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-021
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-022
 
@@ -909,6 +1506,12 @@ python producer_load.py
 - H_local: `2 GB/partition`
 - K_upl: `4`
 - T_seg: `5 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -922,7 +1525,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=300000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-022
@@ -932,11 +1535,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-022
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-022
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-022
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-023
 
@@ -945,6 +1570,12 @@ python producer_load.py
 - H_local: `5 GB/partition`
 - K_upl: `4`
 - T_seg: `5 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -958,7 +1589,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=300000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-023
@@ -968,11 +1599,33 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-023
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-023
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-023
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.
 
 ### EXP-024
 
@@ -981,6 +1634,12 @@ python producer_load.py
 - H_local: `5 GB/partition`
 - K_upl: `4`
 - T_seg: `15 min`
+
+#### 0. Сброс остаточного состояния
+
+```bash
+bash clean.sh
+```
 
 #### 1. Создание topic
 
@@ -994,7 +1653,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
   --config segment.ms=900000
 ```
 
-#### 2. Обновление env для генератора нагрузки
+#### 2. Обновление env для producer
 
 ```bash
 export TOPIC_NAME=exp-024
@@ -1004,8 +1663,30 @@ export DURATION_SEC=3600
 export EXPERIMENT_ID=EXP-024
 ```
 
-#### 3. Запуск генератора нагрузки
+#### 3. Запуск producer
 
 ```bash
-python producer_load.py
+python3 producer_load.py
 ```
+
+#### 4. Обновление env для consumer
+
+```bash
+export TOPIC_NAME=exp-024
+export BOOTSTRAP_SERVERS=localhost:19092
+export EXPERIMENT_ID=EXP-024
+export CONSUMER_MODE=steady-state
+export WARMUP_SEC=900
+export MEASURE_SEC=2700
+export SLO_SEC=0.2
+```
+
+#### 5. Запуск consumer
+
+```bash
+python3 consumer_load.py
+```
+
+#### 6. Комментарий по прогону
+
+После завершения прогона сохранить метрики, при необходимости очистить остаточное состояние и только затем переходить к следующему эксперименту.

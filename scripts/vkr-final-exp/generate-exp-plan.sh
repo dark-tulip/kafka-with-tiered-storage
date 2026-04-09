@@ -1,0 +1,17 @@
+python3 generate_experiments_updated.py \
+  --out EXPERIMENTS_LHS_LAB.md \
+  --bootstrap-servers localhost:19092 \
+  --kafka-container kafka \
+  --partitions 12 \
+  --replication-factor 2 \
+  --remote-storage-enable true \
+  --broker-k-upl-key remote.log.manager.thread.pool.size \
+  --load-profile write-heavy \
+  --duration-sec 3600 \
+  --producer-script producer_load.py \
+  --consumer-script consumer_load.py \
+  --clean-script clean.sh \
+  --consumer-mode steady-state \
+  --warmup-sec 900 \
+  --measure-sec 2700 \
+  --slo-sec 0.2
