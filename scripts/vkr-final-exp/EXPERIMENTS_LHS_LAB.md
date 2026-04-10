@@ -19,10 +19,12 @@
 - partitions: `12`
 - replication.factor: `2`
 - remote.storage.enable: `true`
-- bootstrap.servers: `localhost:19092`
+- client bootstrap.servers: `localhost:19092`
+- topic bootstrap.servers (inside docker exec): `localhost:9092`
 - producer script: `producer_load.py`
 - consumer script: `consumer_load.py`
 - clean script: `clean.sh`
+- compose file: `../../docker-compose.yml`
 - default LOAD_PROFILE: `write-heavy`
 - default DURATION_SEC: `3600`
 - default CONSUMER_MODE: `steady-state`
@@ -30,6 +32,11 @@
 - default MEASURE_SEC: `2700`
 - default SLO_SEC: `0.2`
 - broker-level key for K_upl: `remote.log.manager.thread.pool.size`
+
+## Важное замечание по `kafka-topics.sh`
+
+Команда создания topic запускается через `docker exec` с очисткой `KAFKA_OPTS` и JMX-переменных.
+Это нужно, чтобы CLI-утилита не пыталась повторно поднять JMX exporter внутри контейнера Kafka.
 
 ## Общая таблица экспериментов
 
@@ -105,14 +112,15 @@ export BROKER_K_UPL_VALUE=1
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-001 \
-  --partitions 12 --replication-factor 2 \
+  --partitions 12 --replication-factor 1 \
   --config remote.storage.enable=true \
   --config segment.bytes=67108864 \
   --config local.retention.bytes=2147483648 \
@@ -169,12 +177,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-002 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -233,12 +242,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-003 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -297,12 +307,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-004 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -361,12 +372,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-005 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -425,12 +437,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-006 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -489,12 +502,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-007 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -553,12 +567,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-008 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -648,12 +663,13 @@ export BROKER_K_UPL_VALUE=2
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-009 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -712,12 +728,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-010 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -776,12 +793,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-011 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -840,12 +858,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-012 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -904,12 +923,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-013 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -968,12 +988,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-014 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -1032,12 +1053,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-015 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -1096,12 +1118,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-016 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -1191,12 +1214,13 @@ export BROKER_K_UPL_VALUE=4
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-017 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -1255,12 +1279,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-018 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -1319,12 +1344,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-019 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -1383,12 +1409,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-020 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -1447,12 +1474,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-021 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -1511,12 +1539,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-022 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -1575,12 +1604,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-023 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \
@@ -1639,12 +1669,13 @@ python3 consumer_load.py
 
 ```bash
 bash clean.sh
+docker compose -f ../../docker-compose.yml up -d
 ```
 
 #### 1. Создание topic
 
 ```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 \
+docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-024 \
   --partitions 12 --replication-factor 2 \
   --config remote.storage.enable=true \

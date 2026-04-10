@@ -58,6 +58,7 @@ def build_sorted_manifest() -> list[tuple[str, str, int, int, int, int]]:
 
 def build_markdown(
     bootstrap_servers: str,
+    topic_bootstrap_servers: str,
     kafka_container: str,
     partitions: int,
     replication_factor: int,
@@ -72,6 +73,7 @@ def build_markdown(
     warmup_sec: int,
     measure_sec: int,
     slo_sec: float,
+    compose_file: str,
 ) -> str:
     manifest = build_sorted_manifest()
 
@@ -103,10 +105,12 @@ def build_markdown(
     add(f"- partitions: `{partitions}`")
     add(f"- replication.factor: `{replication_factor}`")
     add(f"- remote.storage.enable: `{remote_storage_enable}`")
-    add(f"- bootstrap.servers: `{bootstrap_servers}`")
+    add(f"- client bootstrap.servers: `{bootstrap_servers}`")
+    add(f"- topic bootstrap.servers (inside docker exec): `{topic_bootstrap_servers}`")
     add(f"- producer script: `{producer_script}`")
     add(f"- consumer script: `{consumer_script}`")
     add(f"- clean script: `{clean_script}`")
+    add(f"- compose file: `{compose_file}`")
     add(f"- default LOAD_PROFILE: `{load_profile}`")
     add(f"- default DURATION_SEC: `{duration_sec}`")
     add(f"- default CONSUMER_MODE: `{consumer_mode}`")
@@ -114,6 +118,11 @@ def build_markdown(
     add(f"- default MEASURE_SEC: `{measure_sec}`")
     add(f"- default SLO_SEC: `{slo_sec}`")
     add(f"- broker-level key for K_upl: `{broker_k_upl_key}`")
+    add("")
+    add("## Важное замечание по `kafka-topics.sh`")
+    add("")
+    add("Команда создания topic запускается через `docker exec` с очисткой `KAFKA_OPTS` и JMX-переменных.")
+    add("Это нужно, чтобы CLI-утилита не пыталась повторно поднять JMX exporter внутри контейнера Kafka.")
     add("")
     add("## Общая таблица экспериментов")
     add("")
@@ -177,13 +186,23 @@ def build_markdown(
             add("")
             add("```bash")
             add(f"bash {clean_script}")
+            add(f"docker compose -f {compose_file} up -d")
             add("```")
             add("")
 
             add("#### 1. Создание topic")
             add("")
             add("```bash")
-            add(f"docker exec -it {kafka_container} /opt/kafka/bin/kafka-topics.sh --bootstrap-server {bootstrap_servers} \\")
+            add(
+                f"docker exec "
+                f"-e JMX_PORT= "
+                f"-e KAFKA_JMX_PORT= "
+                f"-e RMI_HOSTNAME= "
+                f"-e KAFKA_JMX_HOSTNAME= "
+                f"-e KAFKA_OPTS= "
+                f"-it {kafka_container} /opt/kafka/bin/kafka-topics.sh "
+                f"--bootstrap-server {topic_bootstrap_servers} \\"
+            )
             add(f"  --create --if-not-exists --topic {topic} \\")
             add(f"  --partitions {partitions} --replication-factor {replication_factor} \\")
             add(f"  --config remote.storage.enable={remote_storage_enable} \\")
@@ -242,7 +261,8 @@ def build_markdown(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate EXPERIMENTS.md for 24 LHS lab experiments")
     parser.add_argument("--out", default="EXPERIMENTS_LHS_LAB.md", help="Output markdown file")
-    parser.add_argument("--bootstrap-servers", default="localhost:19092")
+    parser.add_argument("--bootstrap-servers", default="localhost:19092", help="Bootstrap servers for producer/consumer from host")
+    parser.add_argument("--topic-bootstrap-servers", default="localhost:9092", help="Bootstrap servers for kafka-topics.sh inside docker exec")
     parser.add_argument("--kafka-container", default="kafka")
     parser.add_argument("--partitions", type=int, default=12)
     parser.add_argument("--replication-factor", type=int, default=2)
@@ -261,10 +281,12 @@ def main() -> None:
     parser.add_argument("--warmup-sec", type=int, default=900)
     parser.add_argument("--measure-sec", type=int, default=2700)
     parser.add_argument("--slo-sec", type=float, default=0.2)
+    parser.add_argument("--compose-file", default="../../docker-compose.yml")
     args = parser.parse_args()
 
     md = build_markdown(
         bootstrap_servers=args.bootstrap_servers,
+        topic_bootstrap_servers=args.topic_bootstrap_servers,
         kafka_container=args.kafka_container,
         partitions=args.partitions,
         replication_factor=args.replication_factor,
@@ -279,6 +301,7 @@ def main() -> None:
         warmup_sec=args.warmup_sec,
         measure_sec=args.measure_sec,
         slo_sec=args.slo_sec,
+        compose_file=args.compose_file,
     )
 
     out_path = Path(args.out)

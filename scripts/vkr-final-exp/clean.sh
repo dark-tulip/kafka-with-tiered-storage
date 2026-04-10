@@ -2,8 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-KAFKA_DATA_DIR="${SCRIPT_DIR}/../kafka/data"
-MINIO_DATA_DIR="${SCRIPT_DIR}/../minio/data"
+KAFKA_DATA_DIR="${SCRIPT_DIR}/../../kafka/data"
+MINIO_DATA_DIR="${SCRIPT_DIR}/../../minio/data"
 
 echo "[clean_hard] Stopping compose stack and removing volumes..."
 docker compose down -v

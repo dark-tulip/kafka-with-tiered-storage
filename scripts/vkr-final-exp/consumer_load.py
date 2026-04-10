@@ -1,13 +1,14 @@
+from typing import Optional
 import csv
 import json
 import os
 import random
-import statistics
 from time import time, sleep
-from kafka import KafkaConsumer
+
+from kafka import KafkaConsumer, TopicPartition
 
 
-def getenv_str(name: str, default: str | None = None) -> str | None:
+def getenv_str(name: str, default: Optional[str] = None) -> Optional[str]:
     value = os.getenv(name)
     return value if value is not None else default
 
@@ -40,17 +41,40 @@ class Reservoir:
         self.data = []
         self.n_seen = 0
 
-    def add(self, x: float):
+    def add(self, x: float) -> None:
         self.n_seen += 1
         if len(self.data) < self.size:
             self.data.append(x)
             return
+
         j = random.randint(1, self.n_seen)
         if j <= self.size:
             self.data[j - 1] = x
 
     def snapshot_sorted(self):
         return sorted(self.data)
+
+
+def wait_for_topic_partitions(
+        consumer: KafkaConsumer,
+        topic: str,
+        timeout_sec: int = 60,
+) -> list:
+    deadline = time() + timeout_sec
+    last_parts = None
+
+    while time() < deadline:
+        consumer.poll(timeout_ms=1000)
+        parts = consumer.partitions_for_topic(topic)
+        if parts:
+            return sorted(parts)
+        last_parts = parts
+        sleep(0.2)
+
+    raise RuntimeError(
+        "Topic metadata was not established in time. "
+        "Topic={topic}, known_partitions={parts}".format(topic=topic, parts=last_parts)
+    )
 
 
 TOPIC = getenv_str("TOPIC_NAME")
@@ -65,36 +89,32 @@ WARMUP_SEC = getenv_int("WARMUP_SEC", 15 * 60)
 MEASURE_SEC = getenv_int("MEASURE_SEC", 45 * 60)
 SLO_SEC = getenv_float("SLO_SEC", 0.2)
 PRINT_EVERY = getenv_int("PRINT_EVERY", 5000)
-CSV_PATH = getenv_str("CSV_PATH", f"consumer_{EXPERIMENT_ID}.csv")
+CSV_PATH = getenv_str("CSV_PATH", "consumer_{exp}.csv".format(exp=EXPERIMENT_ID))
 RESERVOIR_SIZE = getenv_int("RESERVOIR_SIZE", 200000)
 
 AUTO_OFFSET_RESET = getenv_str("AUTO_OFFSET_RESET", "earliest")
-GROUP_ID = getenv_str("GROUP_ID", f"{EXPERIMENT_ID}-{CONSUMER_MODE}")
 
 if CONSUMER_MODE not in {"steady-state", "cold-read"}:
     raise RuntimeError("CONSUMER_MODE must be 'steady-state' or 'cold-read'")
 
 print("=== CONSUMER CONFIG ===")
-print(f"EXPERIMENT_ID={EXPERIMENT_ID}")
-print(f"TOPIC={TOPIC}")
-print(f"BOOTSTRAP={BOOTSTRAP}")
-print(f"CONSUMER_MODE={CONSUMER_MODE}")
-print(f"WARMUP_SEC={WARMUP_SEC}")
-print(f"MEASURE_SEC={MEASURE_SEC}")
-print(f"SLO_SEC={SLO_SEC}")
-print(f"GROUP_ID={GROUP_ID}")
-print(f"AUTO_OFFSET_RESET={AUTO_OFFSET_RESET}")
-print(f"CSV_PATH={CSV_PATH}")
+print("EXPERIMENT_ID={}".format(EXPERIMENT_ID))
+print("TOPIC={}".format(TOPIC))
+print("BOOTSTRAP={}".format(BOOTSTRAP))
+print("CONSUMER_MODE={}".format(CONSUMER_MODE))
+print("WARMUP_SEC={}".format(WARMUP_SEC))
+print("MEASURE_SEC={}".format(MEASURE_SEC))
+print("SLO_SEC={}".format(SLO_SEC))
+print("AUTO_OFFSET_RESET={}".format(AUTO_OFFSET_RESET))
+print("CSV_PATH={}".format(CSV_PATH))
 print()
 
+# Без group_id: ручное назначение партиций надёжнее для одиночного экспериментального consumer
 consumer = KafkaConsumer(
     bootstrap_servers=BOOTSTRAP,
     auto_offset_reset=AUTO_OFFSET_RESET,
     enable_auto_commit=False,
-    group_id=GROUP_ID,
 )
-
-consumer.subscribe([TOPIC])
 
 # exact counters
 total = 0
@@ -130,6 +150,7 @@ csv_writer.writerow([
     "max_s",
 ])
 
+
 def current_stats(now_ts: float):
     elapsed_measure = max(0.001, now_ts - warmup_end)
     lam_r = bytes_total / elapsed_measure if now_ts > warmup_end else 0.0
@@ -150,6 +171,12 @@ def current_stats(now_ts: float):
 
 
 try:
+    partitions = wait_for_topic_partitions(consumer, TOPIC, timeout_sec=60)
+    topic_partitions = [TopicPartition(TOPIC, p) for p in partitions]
+    consumer.assign(topic_partitions)
+
+    print("Assigned partitions: {}".format(partitions))
+
     # --------------------------------------------------------
     # Warmup
     # --------------------------------------------------------
@@ -159,19 +186,13 @@ try:
             consumer.poll(timeout_ms=1000, max_records=2000)
 
     elif CONSUMER_MODE == "cold-read":
-        print("Warmup phase started (cold-read mode waits for data accumulation/offload)...")
+        print("Warmup phase started (cold-read mode keeps polling while data accumulates)...")
         while time() < warmup_end:
-            sleep(1.0)
-
-        # Получаем assignment и уходим в старые offsets
-        print("Acquiring assignment and seeking to beginning for cold-read measurement...")
-        deadline = time() + 30
-        while not consumer.assignment():
             consumer.poll(timeout_ms=1000)
-            if time() > deadline:
-                raise RuntimeError("Consumer assignment was not established in time")
+            sleep(0.2)
 
-        consumer.seek_to_beginning(*consumer.assignment())
+        print("Seeking to beginning for cold-read measurement...")
+        consumer.seek_to_beginning(*topic_partitions)
 
     print("Measurement phase started...")
 
@@ -233,25 +254,30 @@ try:
                     ) = current_stats(now)
 
                     print(
-                        f"Progress: total={total}, "
-                        f"P50={p50:.3f}s P95={p95:.3f}s P99={p99:.3f}s, "
-                        f"lambda_r={lam_r / 1024 / 1024:.2f} MiB/s"
+                        "Progress: total={total}, P50={p50:.3f}s P95={p95:.3f}s "
+                        "P99={p99:.3f}s, lambda_r={lam_r:.2f} MiB/s".format(
+                            total=total,
+                            p50=p50,
+                            p95=p95,
+                            p99=p99,
+                            lam_r=lam_r / 1024 / 1024,
+                        )
                     )
 
                     csv_writer.writerow([
-                        f"{now:.3f}",
+                        "{:.3f}".format(now),
                         "measure",
-                        f"{elapsed_measure:.3f}",
+                        "{:.3f}".format(elapsed_measure),
                         total,
                         bytes_total,
-                        f"{lam_r:.3f}",
+                        "{:.3f}".format(lam_r),
                         within_slo,
-                        f"{slo_ratio:.6f}",
-                        f"{p50:.6f}",
-                        f"{p95:.6f}",
-                        f"{p99:.6f}",
-                        f"{mn:.6f}",
-                        f"{mx:.6f}",
+                        "{:.6f}".format(slo_ratio),
+                        "{:.6f}".format(p50),
+                        "{:.6f}".format(p95),
+                        "{:.6f}".format(p99),
+                        "{:.6f}".format(mn),
+                        "{:.6f}".format(mx),
                     ])
 
                     last_report_total = total
@@ -278,13 +304,18 @@ if sample:
 else:
     p50 = p95 = p99 = mn = mx = float("nan")
 
-print("\n=== FINAL REPORT ===")
-print(f"Experiment ID: {EXPERIMENT_ID}")
-print(f"Topic: {TOPIC}")
-print(f"Mode: {CONSUMER_MODE}")
-print(f"Messages: {total}")
-print(f"Latency: min={mn:.3f}s p50={p50:.3f}s p95={p95:.3f}s p99={p99:.3f}s max={mx:.3f}s")
-print(f"SLO <= {SLO_SEC:.3f}s : {slo_ratio * 100:.2f}%")
-print(f"Read throughput λr: {lam_r_bps:.0f} B/s ({lam_r_mib:.2f} MiB/s)")
-print(f"Total bytes (exact): {bytes_total}")
-print(f"CSV saved to: {CSV_PATH}")
+print("\\n=== FINAL REPORT ===")
+print("Experiment ID: {}".format(EXPERIMENT_ID))
+print("Topic: {}".format(TOPIC))
+print("Mode: {}".format(CONSUMER_MODE))
+print("Messages: {}".format(total))
+print(
+    "Latency: min={mn:.3f}s p50={p50:.3f}s p95={p95:.3f}s "
+    "p99={p99:.3f}s max={mx:.3f}s".format(
+        mn=mn, p50=p50, p95=p95, p99=p99, mx=mx
+    )
+)
+print("SLO <= {:.3f}s : {:.2f}%".format(SLO_SEC, slo_ratio * 100))
+print("Read throughput λr: {:.0f} B/s ({:.2f} MiB/s)".format(lam_r_bps, lam_r_mib))
+print("Total bytes (exact): {}".format(bytes_total))
+print("CSV saved to: {}".format(CSV_PATH))

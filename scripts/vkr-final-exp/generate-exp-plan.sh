@@ -1,6 +1,7 @@
-python3 generate_experiments_updated.py \
+python3 generate_experiments_updated_jmxfix.py \
   --out EXPERIMENTS_LHS_LAB.md \
   --bootstrap-servers localhost:19092 \
+  --topic-bootstrap-servers localhost:9092 \
   --kafka-container kafka \
   --partitions 12 \
   --replication-factor 2 \
