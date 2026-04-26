@@ -124,8 +124,8 @@ try:
             last_report_mono = current_mono
 
 finally:
-    producer.flush(timeout=30)
-    producer.close(timeout=30)
+    producer.flush()
+    producer.close()
 
 elapsed_total = max(0.001, perf_counter() - start_mono)
 lam_w_bps = bytes_sent / elapsed_total

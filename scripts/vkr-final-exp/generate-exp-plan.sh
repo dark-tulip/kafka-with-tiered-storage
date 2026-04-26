@@ -4,7 +4,7 @@ python3 generate_experiments_updated_jmxfix.py \
   --topic-bootstrap-servers localhost:9092 \
   --kafka-container kafka \
   --partitions 12 \
-  --replication-factor 2 \
+  --replication-factor 1 \
   --remote-storage-enable true \
   --broker-k-upl-key remote.log.manager.thread.pool.size \
   --load-profile write-heavy \

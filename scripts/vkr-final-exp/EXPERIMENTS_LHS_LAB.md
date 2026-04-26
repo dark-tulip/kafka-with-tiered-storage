@@ -185,7 +185,7 @@ docker compose -f ../../docker-compose.yml up -d
 ```bash
 docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-002 \
-  --partitions 12 --replication-factor 2 \
+  --partitions 12 --replication-factor 1 \
   --config remote.storage.enable=true \
   --config segment.bytes=67108864 \
   --config local.retention.bytes=5368709120 \
@@ -250,7 +250,7 @@ docker compose -f ../../docker-compose.yml up -d
 ```bash
 docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-003 \
-  --partitions 12 --replication-factor 2 \
+  --partitions 12 --replication-factor 1 \
   --config remote.storage.enable=true \
   --config segment.bytes=67108864 \
   --config local.retention.bytes=5368709120 \
@@ -315,7 +315,7 @@ docker compose -f ../../docker-compose.yml up -d
 ```bash
 docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-004 \
-  --partitions 12 --replication-factor 2 \
+  --partitions 12 --replication-factor 1 \
   --config remote.storage.enable=true \
   --config segment.bytes=134217728 \
   --config local.retention.bytes=2147483648 \
@@ -380,7 +380,7 @@ docker compose -f ../../docker-compose.yml up -d
 ```bash
 docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-005 \
-  --partitions 12 --replication-factor 2 \
+  --partitions 12 --replication-factor 1 \
   --config remote.storage.enable=true \
   --config segment.bytes=134217728 \
   --config local.retention.bytes=5368709120 \
@@ -445,7 +445,7 @@ docker compose -f ../../docker-compose.yml up -d
 ```bash
 docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-006 \
-  --partitions 12 --replication-factor 2 \
+  --partitions 12 --replication-factor 1 \
   --config remote.storage.enable=true \
   --config segment.bytes=268435456 \
   --config local.retention.bytes=1073741824 \
@@ -510,7 +510,7 @@ docker compose -f ../../docker-compose.yml up -d
 ```bash
 docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-007 \
-  --partitions 12 --replication-factor 2 \
+  --partitions 12 --replication-factor 1 \
   --config remote.storage.enable=true \
   --config segment.bytes=268435456 \
   --config local.retention.bytes=1073741824 \
@@ -575,11 +575,11 @@ docker compose -f ../../docker-compose.yml up -d
 ```bash
 docker exec -e JMX_PORT= -e KAFKA_JMX_PORT= -e RMI_HOSTNAME= -e KAFKA_JMX_HOSTNAME= -e KAFKA_OPTS= -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic exp-008 \
-  --partitions 12 --replication-factor 2 \
+  --partitions 12 --replication-factor 1 \
   --config remote.storage.enable=true \
   --config segment.bytes=268435456 \
   --config local.retention.bytes=2147483648 \
-  --config segment.ms=60000
+  --config segment.ms=60000 
 ```
 
 #### 2. Обновление env для producer

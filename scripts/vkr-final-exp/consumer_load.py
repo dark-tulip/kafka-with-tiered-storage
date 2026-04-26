@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 import csv
 import json
 import os
@@ -23,7 +23,7 @@ def getenv_float(name: str, default: float) -> float:
     return float(value) if value is not None else default
 
 
-def percentile_from_sorted(data, p: float) -> float:
+def percentile_from_sorted(data: List[float], p: float) -> float:
     if not data:
         return float("nan")
     if len(data) == 1:
@@ -38,7 +38,7 @@ def percentile_from_sorted(data, p: float) -> float:
 class Reservoir:
     def __init__(self, size: int):
         self.size = size
-        self.data = []
+        self.data: List[float] = []
         self.n_seen = 0
 
     def add(self, x: float) -> None:
@@ -51,7 +51,7 @@ class Reservoir:
         if j <= self.size:
             self.data[j - 1] = x
 
-    def snapshot_sorted(self):
+    def snapshot_sorted(self) -> List[float]:
         return sorted(self.data)
 
 
@@ -59,7 +59,7 @@ def wait_for_topic_partitions(
         consumer: KafkaConsumer,
         topic: str,
         timeout_sec: int = 60,
-) -> list:
+) -> List[int]:
     deadline = time() + timeout_sec
     last_parts = None
 
@@ -91,11 +91,13 @@ SLO_SEC = getenv_float("SLO_SEC", 0.2)
 PRINT_EVERY = getenv_int("PRINT_EVERY", 5000)
 CSV_PATH = getenv_str("CSV_PATH", "consumer_{exp}.csv".format(exp=EXPERIMENT_ID))
 RESERVOIR_SIZE = getenv_int("RESERVOIR_SIZE", 200000)
-
 AUTO_OFFSET_RESET = getenv_str("AUTO_OFFSET_RESET", "earliest")
+POLL_TIMEOUT_MS = getenv_int("POLL_TIMEOUT_MS", 1000)
 
 if CONSUMER_MODE not in {"steady-state", "cold-read"}:
     raise RuntimeError("CONSUMER_MODE must be 'steady-state' or 'cold-read'")
+
+metric_label = "latency_read_s" if CONSUMER_MODE == "steady-state" else "message_age_s"
 
 print("=== CONSUMER CONFIG ===")
 print("EXPERIMENT_ID={}".format(EXPERIMENT_ID))
@@ -107,23 +109,22 @@ print("MEASURE_SEC={}".format(MEASURE_SEC))
 print("SLO_SEC={}".format(SLO_SEC))
 print("AUTO_OFFSET_RESET={}".format(AUTO_OFFSET_RESET))
 print("CSV_PATH={}".format(CSV_PATH))
+print("METRIC_LABEL={}".format(metric_label))
 print()
 
-# Без group_id: ручное назначение партиций надёжнее для одиночного экспериментального consumer
 consumer = KafkaConsumer(
     bootstrap_servers=BOOTSTRAP,
     auto_offset_reset=AUTO_OFFSET_RESET,
     enable_auto_commit=False,
 )
 
-# exact counters
 total = 0
 within_slo = 0
 bytes_total = 0
-min_latency = float("inf")
-max_latency = 0.0
+min_metric = float("inf")
+max_metric = 0.0
+skipped_old = 0
 
-# approximate percentile sample
 reservoir = Reservoir(RESERVOIR_SIZE)
 
 start = time()
@@ -131,14 +132,18 @@ warmup_end = start + WARMUP_SEC
 measure_end = warmup_end + MEASURE_SEC
 
 last_report_total = 0
+measure_start_wall = None
 
 csv_file = open(CSV_PATH, "w", newline="", buffering=1)
 csv_writer = csv.writer(csv_file)
 csv_writer.writerow([
     "ts",
     "phase",
+    "mode",
+    "metric_kind",
     "elapsed_measure_s",
     "total_msgs",
+    "skipped_old_msgs",
     "bytes_total",
     "lambda_r_bps",
     "within_slo",
@@ -152,8 +157,12 @@ csv_writer.writerow([
 
 
 def current_stats(now_ts: float):
-    elapsed_measure = max(0.001, now_ts - warmup_end)
-    lam_r = bytes_total / elapsed_measure if now_ts > warmup_end else 0.0
+    if measure_start_wall is None:
+        elapsed_measure = 0.001
+    else:
+        elapsed_measure = max(0.001, now_ts - measure_start_wall)
+
+    lam_r = bytes_total / elapsed_measure if total else 0.0
     slo_ratio = (within_slo / total) if total else 0.0
 
     sample = reservoir.snapshot_sorted()
@@ -164,47 +173,48 @@ def current_stats(now_ts: float):
     else:
         p50 = p95 = p99 = float("nan")
 
-    mn = min_latency if total else float("nan")
-    mx = max_latency if total else float("nan")
+    mn = min_metric if total else float("nan")
+    mx = max_metric if total else float("nan")
 
     return elapsed_measure, lam_r, slo_ratio, p50, p95, p99, mn, mx
 
 
 try:
+
     partitions = wait_for_topic_partitions(consumer, TOPIC, timeout_sec=60)
     topic_partitions = [TopicPartition(TOPIC, p) for p in partitions]
     consumer.assign(topic_partitions)
 
     print("Assigned partitions: {}".format(partitions))
 
-    # --------------------------------------------------------
     # Warmup
-    # --------------------------------------------------------
     if CONSUMER_MODE == "steady-state":
-        print("Warmup phase started (steady-state consumer is polling and discarding metrics)...")
+        print("Warmup phase started (steady-state consumer polls and discards backlog)...")
         while time() < warmup_end:
-            consumer.poll(timeout_ms=1000, max_records=2000)
+            consumer.poll(timeout_ms=POLL_TIMEOUT_MS, max_records=2000)
+
+        print("Seeking to end before measurement to avoid backlog distortion...")
+        consumer.seek_to_end(*topic_partitions)
+        measure_start_wall = time()
 
     elif CONSUMER_MODE == "cold-read":
-        print("Warmup phase started (cold-read mode keeps polling while data accumulates)...")
+        print("Warmup phase started (cold-read waits while data accumulates)...")
         while time() < warmup_end:
-            consumer.poll(timeout_ms=1000)
+            consumer.poll(timeout_ms=POLL_TIMEOUT_MS)
             sleep(0.2)
 
         print("Seeking to beginning for cold-read measurement...")
         consumer.seek_to_beginning(*topic_partitions)
+        measure_start_wall = time()
 
     print("Measurement phase started...")
 
-    # --------------------------------------------------------
-    # Measurement
-    # --------------------------------------------------------
     while True:
         now = time()
         if now >= measure_end:
             break
 
-        records = consumer.poll(timeout_ms=1000, max_records=2000)
+        records = consumer.poll(timeout_ms=POLL_TIMEOUT_MS, max_records=2000)
         if not records:
             continue
 
@@ -229,17 +239,26 @@ try:
                 if sent_ts is None:
                     continue
 
-                latency = now - sent_ts
-                reservoir.add(latency)
+                # steady-state: меряем только свежие сообщения, пришедшие после старта измерения
+                if CONSUMER_MODE == "steady-state":
+                    if measure_start_wall is not None and sent_ts < measure_start_wall:
+                        skipped_old += 1
+                        continue
+                    metric_value = now - sent_ts
+                else:
+                    # cold-read: это возраст сообщения на момент чтения
+                    metric_value = now - sent_ts
+
+                reservoir.add(metric_value)
 
                 total += 1
-                if latency <= SLO_SEC:
+                if metric_value <= SLO_SEC:
                     within_slo += 1
 
-                if latency < min_latency:
-                    min_latency = latency
-                if latency > max_latency:
-                    max_latency = latency
+                if metric_value < min_metric:
+                    min_metric = metric_value
+                if metric_value > max_metric:
+                    max_metric = metric_value
 
                 if total - last_report_total >= PRINT_EVERY:
                     (
@@ -254,9 +273,11 @@ try:
                     ) = current_stats(now)
 
                     print(
-                        "Progress: total={total}, P50={p50:.3f}s P95={p95:.3f}s "
-                        "P99={p99:.3f}s, lambda_r={lam_r:.2f} MiB/s".format(
+                        "Progress: total={total}, skipped_old={skipped_old}, "
+                        "P50={p50:.3f}s P95={p95:.3f}s P99={p99:.3f}s, "
+                        "lambda_r={lam_r:.2f} MiB/s".format(
                             total=total,
+                            skipped_old=skipped_old,
                             p50=p50,
                             p95=p95,
                             p99=p99,
@@ -267,8 +288,11 @@ try:
                     csv_writer.writerow([
                         "{:.3f}".format(now),
                         "measure",
+                        CONSUMER_MODE,
+                        metric_label,
                         "{:.3f}".format(elapsed_measure),
                         total,
+                        skipped_old,
                         bytes_total,
                         "{:.3f}".format(lam_r),
                         within_slo,
@@ -289,7 +313,11 @@ finally:
     consumer.close()
     csv_file.close()
 
-elapsed_total = max(0.001, time() - warmup_end)
+if measure_start_wall is None:
+    elapsed_total = 0.001
+else:
+    elapsed_total = max(0.001, time() - measure_start_wall)
+
 lam_r_bps = bytes_total / elapsed_total if total else 0.0
 lam_r_mib = lam_r_bps / 1024 / 1024
 slo_ratio = (within_slo / total) if total else 0.0
@@ -299,18 +327,20 @@ if sample:
     p50 = percentile_from_sorted(sample, 0.50)
     p95 = percentile_from_sorted(sample, 0.95)
     p99 = percentile_from_sorted(sample, 0.99)
-    mn = min_latency
-    mx = max_latency
+    mn = min_metric
+    mx = max_metric
 else:
     p50 = p95 = p99 = mn = mx = float("nan")
 
-print("\\n=== FINAL REPORT ===")
+print("\n=== FINAL REPORT ===")
 print("Experiment ID: {}".format(EXPERIMENT_ID))
 print("Topic: {}".format(TOPIC))
 print("Mode: {}".format(CONSUMER_MODE))
+print("Metric kind: {}".format(metric_label))
 print("Messages: {}".format(total))
+print("Skipped old backlog messages: {}".format(skipped_old))
 print(
-    "Latency: min={mn:.3f}s p50={p50:.3f}s p95={p95:.3f}s "
+    "Metric: min={mn:.3f}s p50={p50:.3f}s p95={p95:.3f}s "
     "p99={p99:.3f}s max={mx:.3f}s".format(
         mn=mn, p50=p50, p95=p95, p99=p99, mx=mx
     )
