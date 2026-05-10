@@ -17,6 +17,14 @@ def getenv_str(name: str, default: str | None = None) -> str | None:
     return value if value is not None else default
 
 
+def format_seconds(seconds: float) -> str:
+    seconds = max(0, int(seconds))
+    h = seconds // 3600
+    m = (seconds % 3600) // 60
+    s = seconds % 60
+    return f"{h:02d}:{m:02d}:{s:02d}"
+
+
 TOPIC = getenv_str("TOPIC_NAME")
 if not TOPIC:
     raise RuntimeError("TOPIC_NAME is not set")
@@ -24,10 +32,6 @@ if not TOPIC:
 BOOTSTRAP_SERVERS = getenv_str("BOOTSTRAP_SERVERS", "localhost:19092")
 LOAD_PROFILE = getenv_str("LOAD_PROFILE", "write-heavy")
 
-# Во ВКР:
-# - write-heavy: ~5000 записей/с, payload 1-4 KB, без update
-# - mixed: ~2000 записей/с, payload 1-4 KB
-# Читающая часть mixed/cold-read моделируется отдельным consumer/query driver.
 PROFILE_TO_RATE = {
     "write-heavy": 5000,
     "mixed": 2000,
@@ -45,8 +49,6 @@ DURATION_SEC = getenv_int("DURATION_SEC", 60 * 60)
 PAYLOAD_MIN_BYTES = getenv_int("PAYLOAD_MIN_BYTES", 1024)
 PAYLOAD_MAX_BYTES = getenv_int("PAYLOAD_MAX_BYTES", 4096)
 
-# Для равномерного распределения по партициям лучше указывать key.
-# При 12 партициях хеш по id даёт близкое к равномерному распределение.
 producer = KafkaProducer(
     bootstrap_servers=BOOTSTRAP_SERVERS,
     linger_ms=5,
@@ -66,7 +68,6 @@ next_id = 1
 sent = 0
 bytes_sent = 0
 
-start_wall = time()
 start_mono = perf_counter()
 end_mono = start_mono + DURATION_SEC
 
@@ -78,8 +79,6 @@ try:
         now_wall = time()
         now_mono = perf_counter()
 
-        # Rate control: фиксированная целевая скорость для профиля.
-        # Это ближе к постановке ВКР, чем случайный rate на каждом сообщении.
         if now_mono < next_send_mono:
             sleep(next_send_mono - now_mono)
 
@@ -108,18 +107,23 @@ try:
 
         next_send_mono += 1.0 / TARGET_RATE_MSG_S
 
-        # Прогресс раз в ~5 секунд
         current_mono = perf_counter()
         if current_mono - last_report_mono >= 5.0:
             elapsed = max(0.001, current_mono - start_mono)
+            remaining = max(0.0, end_mono - current_mono)
+            progress_pct = min(100.0, 100.0 * elapsed / DURATION_SEC)
+
             actual_msg_rate = sent / elapsed
             lam_w_bps = bytes_sent / elapsed
             lam_w_mib = lam_w_bps / 1024 / 1024
 
             print(
-                f"Progress: sent={sent}, "
-                f"msg_rate={actual_msg_rate:.1f} msg/s, "
-                f"lambda_w={lam_w_mib:.2f} MiB/s"
+                f"Progress: {progress_pct:5.1f}% | "
+                f"sent={sent} | "
+                f"msg_rate={actual_msg_rate:.1f} msg/s | "
+                f"lambda_w={lam_w_mib:.2f} MiB/s | "
+                f"elapsed={format_seconds(elapsed)} | "
+                f"remaining={format_seconds(remaining)}"
             )
             last_report_mono = current_mono
 
@@ -137,3 +141,4 @@ print(f"Messages: {sent}")
 print(f"Total bytes (exact payload): {bytes_sent}")
 print(f"Message rate: {actual_msg_rate:.1f} msg/s")
 print(f"Write throughput λw: {lam_w_bps:.0f} B/s ({lam_w_mib:.2f} MiB/s)")
+print(f"Elapsed: {format_seconds(elapsed_total)}")

@@ -162,7 +162,7 @@ def build_markdown(
         add("```bash")
         add(f"export BROKER_K_UPL_KEY={broker_k_upl_key}")
         add(f"export BROKER_K_UPL_VALUE={k_upl}")
-        add("# apply the value in broker config and restart Kafka brokers")
+        add("# update 'server.properties' in broker config and restart Kafka brokers")
         add("```")
         add("")
         add("### Эксперименты группы")

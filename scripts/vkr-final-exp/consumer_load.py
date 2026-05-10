@@ -23,6 +23,14 @@ def getenv_float(name: str, default: float) -> float:
     return float(value) if value is not None else default
 
 
+def format_seconds(seconds: float) -> str:
+    seconds = max(0, int(seconds))
+    h = seconds // 3600
+    m = (seconds % 3600) // 60
+    s = seconds % 60
+    return "{:02d}:{:02d}:{:02d}".format(h, m, s)
+
+
 def percentile_from_sorted(data: List[float], p: float) -> float:
     if not data:
         return float("nan")
@@ -142,6 +150,8 @@ csv_writer.writerow([
     "mode",
     "metric_kind",
     "elapsed_measure_s",
+    "remaining_measure_s",
+    "progress_pct",
     "total_msgs",
     "skipped_old_msgs",
     "bytes_total",
@@ -162,6 +172,9 @@ def current_stats(now_ts: float):
     else:
         elapsed_measure = max(0.001, now_ts - measure_start_wall)
 
+    remaining_measure = max(0.0, measure_end - now_ts)
+    progress_pct = min(100.0, 100.0 * elapsed_measure / max(1, MEASURE_SEC))
+
     lam_r = bytes_total / elapsed_measure if total else 0.0
     slo_ratio = (within_slo / total) if total else 0.0
 
@@ -176,11 +189,10 @@ def current_stats(now_ts: float):
     mn = min_metric if total else float("nan")
     mx = max_metric if total else float("nan")
 
-    return elapsed_measure, lam_r, slo_ratio, p50, p95, p99, mn, mx
+    return elapsed_measure, remaining_measure, progress_pct, lam_r, slo_ratio, p50, p95, p99, mn, mx
 
 
 try:
-
     partitions = wait_for_topic_partitions(consumer, TOPIC, timeout_sec=60)
     topic_partitions = [TopicPartition(TOPIC, p) for p in partitions]
     consumer.assign(topic_partitions)
@@ -239,14 +251,12 @@ try:
                 if sent_ts is None:
                     continue
 
-                # steady-state: меряем только свежие сообщения, пришедшие после старта измерения
                 if CONSUMER_MODE == "steady-state":
                     if measure_start_wall is not None and sent_ts < measure_start_wall:
                         skipped_old += 1
                         continue
                     metric_value = now - sent_ts
                 else:
-                    # cold-read: это возраст сообщения на момент чтения
                     metric_value = now - sent_ts
 
                 reservoir.add(metric_value)
@@ -263,6 +273,8 @@ try:
                 if total - last_report_total >= PRINT_EVERY:
                     (
                         elapsed_measure,
+                        remaining_measure,
+                        progress_pct,
                         lam_r,
                         slo_ratio,
                         p50,
@@ -273,15 +285,18 @@ try:
                     ) = current_stats(now)
 
                     print(
-                        "Progress: total={total}, skipped_old={skipped_old}, "
-                        "P50={p50:.3f}s P95={p95:.3f}s P99={p99:.3f}s, "
-                        "lambda_r={lam_r:.2f} MiB/s".format(
+                        "Progress: {progress:5.1f}% | total={total} | skipped_old={skipped_old} | "
+                        "P50={p50:.3f}s P95={p95:.3f}s P99={p99:.3f}s | "
+                        "lambda_r={lam_r:.2f} MiB/s | elapsed={elapsed} | remaining={remaining}".format(
+                            progress=progress_pct,
                             total=total,
                             skipped_old=skipped_old,
                             p50=p50,
                             p95=p95,
                             p99=p99,
                             lam_r=lam_r / 1024 / 1024,
+                            elapsed=format_seconds(elapsed_measure),
+                            remaining=format_seconds(remaining_measure),
                         )
                     )
 
@@ -291,6 +306,8 @@ try:
                         CONSUMER_MODE,
                         metric_label,
                         "{:.3f}".format(elapsed_measure),
+                        "{:.3f}".format(remaining_measure),
+                        "{:.2f}".format(progress_pct),
                         total,
                         skipped_old,
                         bytes_total,
@@ -348,4 +365,5 @@ print(
 print("SLO <= {:.3f}s : {:.2f}%".format(SLO_SEC, slo_ratio * 100))
 print("Read throughput λr: {:.0f} B/s ({:.2f} MiB/s)".format(lam_r_bps, lam_r_mib))
 print("Total bytes (exact): {}".format(bytes_total))
+print("Elapsed: {}".format(format_seconds(elapsed_total)))
 print("CSV saved to: {}".format(CSV_PATH))
