@@ -20,7 +20,7 @@
   "fiscalYearStartMonth": 0,
   "gnetId": 24002,
   "graphTooltip": 1,
-  "id": 6,
+  "id": 3,
   "links": [],
   "panels": [
     {
@@ -764,7 +764,7 @@
           "editorMode": "code",
           "expr": "minio_bucket_usage_total_bytes",
           "instant": false,
-          "legendFormat": "{{bucket}}",
+          "legendFormat": "{{bucket}} {{instance}}",
           "range": true,
           "refId": "A"
         }
@@ -1111,7 +1111,7 @@
           "editorMode": "code",
           "expr": "kafka_broker_bytes_rate",
           "instant": false,
-          "legendFormat": "{{topic}} {{direction}}",
+          "legendFormat": "{{topic}} {{direction}} {{instance}}",
           "range": true,
           "refId": "A"
         }
@@ -1206,9 +1206,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(kafka_broker_bytes_rate{direction=\"BytesInPerSec\", _cluster=~\"$cluster\", _environment=\"$environment\",topic!=\"\"})",
+          "expr": "sum by (instance) (kafka_broker_bytes_rate{direction=\"BytesInPerSec\", _cluster=~\"$cluster\", _environment=\"$environment\",topic!=\"\"})",
           "instant": false,
-          "legendFormat": "Produce",
+          "legendFormat": "Produce {{instance}}",
           "range": true,
           "refId": "A"
         },
@@ -1218,10 +1218,10 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(kafka_broker_bytes_rate{direction=\"BytesOutPerSec\", _cluster=~\"$cluster\", _environment=\"$environment\",topic!=\"\"})",
+          "expr": "sum by (instance) (kafka_broker_bytes_rate{direction=\"BytesOutPerSec\", _cluster=~\"$cluster\", _environment=\"$environment\",topic!=\"\"})",
           "hide": false,
           "instant": false,
-          "legendFormat": "Consume",
+          "legendFormat": "Consume {{instance}}",
           "range": true,
           "refId": "B"
         }
@@ -1347,7 +1347,7 @@
           },
           "editorMode": "code",
           "expr": "kafka_broker_messages_in_rate",
-          "legendFormat": "{{topic}}",
+          "legendFormat": "{{instance}} {{topic}}",
           "range": true,
           "refId": "A"
         }
@@ -1448,9 +1448,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum by (topic) (kafka_log_size)",
+          "expr": "sum by (instance, topic) (kafka_log_size)",
           "instant": false,
-          "legendFormat": "{{label_name}}",
+          "legendFormat": "{{instance}} {{topic}}",
           "range": true,
           "refId": "A"
         }
@@ -1508,7 +1508,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-green"
+                "color": "dark-green",
+                "value": null
               },
               {
                 "color": "dark-red",
@@ -1553,9 +1554,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum by (topic) (kafka_broker_bytes_rate{direction=\"BytesOutPerSec\", _cluster=~\"$cluster\", _environment=\"$environment\"})",
+          "expr": "topk(5, sum by (instance, topic) (kafka_broker_bytes_rate{direction=\"BytesOutPerSec\", _cluster=~\"$cluster\", _environment=\"$environment\"}))",
           "instant": false,
-          "legendFormat": "{{topic}}",
+          "legendFormat": "{{instance}} {{topic}}",
           "range": true,
           "refId": "A"
         }
@@ -1613,7 +1614,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-green"
+                "color": "dark-green",
+                "value": null
               },
               {
                 "color": "dark-red",
@@ -1656,9 +1658,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "topk(5, sum by (topic) (kafka_broker_bytes_rate{direction=\"BytesInPerSec\", _cluster=~\"$cluster\", _environment=\"$environment\",topic!=\"\"}))",
+          "expr": "topk(5, sum by (instance, topic) (kafka_broker_bytes_rate{direction=\"BytesInPerSec\", _cluster=~\"$cluster\", _environment=\"$environment\",topic!=\"\"}))",
           "instant": false,
-          "legendFormat": "{{topic}}",
+          "legendFormat": "{{instance}} {{topic}}",
           "range": true,
           "refId": "A"
         }
@@ -1728,7 +1730,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1769,6 +1772,7 @@
           },
           "editorMode": "code",
           "expr": "kafka_remotelogsizebytes",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
@@ -1825,7 +1829,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1866,6 +1871,7 @@
           },
           "editorMode": "code",
           "expr": "kafka_remotelogmetadatacount",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
@@ -1922,7 +1928,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1961,7 +1968,7 @@
           },
           "editorMode": "code",
           "expr": "kafka_remotecopylagbytes",
-          "legendFormat": "copy lag bytes",
+          "legendFormat": "copy lag bytes {{instance}}",
           "range": true,
           "refId": "A"
         },
@@ -1972,7 +1979,7 @@
           },
           "editorMode": "code",
           "expr": "kafka_remotecopylagsegments",
-          "legendFormat": "copy lag segments",
+          "legendFormat": "copy lag segments {{instance}}",
           "range": true,
           "refId": "B"
         }
@@ -2029,7 +2036,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2068,7 +2076,7 @@
           },
           "editorMode": "code",
           "expr": "kafka_remotedeletelagbytes",
-          "legendFormat": "delete lag bytes",
+          "legendFormat": "delete lag bytes {{instance}}",
           "range": true,
           "refId": "A"
         },
@@ -2079,7 +2087,7 @@
           },
           "editorMode": "code",
           "expr": "kafka_remotedeletelagsegments",
-          "legendFormat": "delete lag segments",
+          "legendFormat": "delete lag segments {{instance}}",
           "range": true,
           "refId": "B"
         }
@@ -2136,7 +2144,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2179,6 +2188,7 @@
           },
           "editorMode": "code",
           "expr": "aiven_tiered_object_upload_bytes_rate{instance=~\"$instance\"}",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
@@ -2200,7 +2210,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2239,6 +2250,7 @@
       "targets": [
         {
           "expr": "kafka_remotecopylagbytes{instance=~\"$instance\"}",
+          "legendFormat": "{{instance}}",
           "refId": "A"
         }
       ],
@@ -2259,7 +2271,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2298,6 +2311,7 @@
       "targets": [
         {
           "expr": "kafka_remotedeletelagsegments{instance=~\"$instance\"}",
+          "legendFormat": "{{instance}}",
           "refId": "A"
         }
       ],
@@ -2320,7 +2334,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2359,6 +2374,7 @@
       "targets": [
         {
           "expr": "kafka_remotelogmanagertasksavgidlepercent{instance=~\"$instance\"}",
+          "legendFormat": "{{instance}}",
           "refId": "A"
         }
       ],
@@ -2425,7 +2441,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2501,10 +2518,10 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum by (api) (increase(minio_s3_requests_total{}[$__range]))",
+          "expr": "sum by (instance, api) (increase(minio_s3_requests_total{}[$__range]))",
           "interval": "1m",
           "intervalFactor": 2,
-          "legendFormat": "{{server,api}}",
+          "legendFormat": "{{instance}} {{api}}",
           "range": true,
           "refId": "A"
         },
@@ -2515,11 +2532,11 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum(increase(minio_s3_requests_total{api=~\"putobject|newmultipartupload|putobjectpart|completemultipartupload\"}[$__range]))",
+          "expr": "sum by (instance, api) (increase(minio_s3_requests_total{api=~\"putobject|newmultipartupload|putobjectpart|completemultipartupload\"}[$__range]))",
           "hide": false,
           "interval": "1m",
           "intervalFactor": 2,
-          "legendFormat": "PUT ops {{server,api}}",
+          "legendFormat": "PUT ops {{instance}} {{api}}",
           "range": true,
           "refId": "B"
         },
@@ -2530,11 +2547,11 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum(increase(minio_s3_requests_total{api=~\"getobject|headobject\"}[$__range]))",
+          "expr": "sum by (instance, api) (increase(minio_s3_requests_total{api=~\"getobject|headobject\"}[$__range]))",
           "hide": false,
           "interval": "1m",
           "intervalFactor": 2,
-          "legendFormat": "GET ops {{server,api}}",
+          "legendFormat": "GET ops {{instance}} {{api}}",
           "range": true,
           "refId": "C"
         }
@@ -2565,7 +2582,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -2797,7 +2815,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2910,7 +2929,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -2957,7 +2977,7 @@
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "",
+          "legendFormat": "{{instance}}",
           "metric": "process_start_time_seconds",
           "refId": "A",
           "step": 60
@@ -3013,7 +3033,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -3086,10 +3107,10 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum by (api) (increase(minio_s3_requests_4xx_errors_total{job=~\"$scrape_jobs\"}[$__rate_interval]))",
+          "expr": "sum by (instance, api) (increase(minio_s3_requests_4xx_errors_total{job=~\"$scrape_jobs\"}[$__rate_interval]))",
           "interval": "1m",
           "intervalFactor": 2,
-          "legendFormat": "{{server,api}}",
+          "legendFormat": "{{instance}} {{api}}",
           "range": true,
           "refId": "A"
         }
@@ -3144,7 +3165,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -3215,10 +3237,10 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum by (server,api) (increase(minio_s3_requests_5xx_errors_total{job=~\"$scrape_jobs\"}[$__rate_interval]))",
+          "expr": "sum by (instance, api) (increase(minio_s3_requests_5xx_errors_total{job=~\"$scrape_jobs\"}[$__rate_interval]))",
           "interval": "1m",
           "intervalFactor": 2,
-          "legendFormat": "{{server,api}}",
+          "legendFormat": "{{instance}} {{api}}",
           "range": true,
           "refId": "A"
         }
@@ -3288,7 +3310,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-green"
+                "color": "dark-green",
+                "value": null
               },
               {
                 "color": "dark-yellow",
@@ -3337,9 +3360,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum by(request) (kafka_network_requestmetrics_localtimems_99p{_cluster=\"$cluster\", _environment=\"$environment\"})",
+          "expr": "sum by (instance, request) (kafka_network_requestmetrics_localtimems_99p{_cluster=\"$cluster\", _environment=\"$environment\"})",
           "instant": false,
-          "legendFormat": "{{request}}",
+          "legendFormat": "{{instance}} {{request}}",
           "range": true,
           "refId": "A"
         }
@@ -3396,7 +3419,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-green"
+                "color": "dark-green",
+                "value": null
               },
               {
                 "color": "dark-yellow",
@@ -3502,7 +3526,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-green"
+                "color": "dark-green",
+                "value": null
               },
               {
                 "color": "dark-yellow",
@@ -3550,9 +3575,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum by (request) (kafka_network_requestmetrics_requestqueuetimems_99p)",
+          "expr": "sum by (instance, request) (kafka_network_requestmetrics_requestqueuetimems_99p)",
           "instant": false,
-          "legendFormat": "{{request}} - {{instance}}",
+          "legendFormat": "{{instance}} {{request}}",
           "range": true,
           "refId": "A"
         }
@@ -3609,7 +3634,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-green"
+                "color": "dark-green",
+                "value": null
               },
               {
                 "color": "dark-red",
@@ -3712,7 +3738,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-green"
+                "color": "dark-green",
+                "value": null
               },
               {
                 "color": "dark-red",
@@ -3753,9 +3780,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(increase(kafka_server_brokertopicmetrics_failedproducerequestspersec_oneminuterate{_cluster=~\"$cluster\", _environment=\"$environment\"}[1m]))",
+          "expr": "sum by (instance) (increase(kafka_server_brokertopicmetrics_failedproducerequestspersec_oneminuterate{_cluster=~\"$cluster\", _environment=\"$environment\"}[1m]))",
           "instant": false,
-          "legendFormat": "Total Failed Producer Requests",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
@@ -3813,7 +3840,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-green"
+                "color": "dark-green",
+                "value": null
               },
               {
                 "color": "dark-red",
@@ -3854,9 +3882,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(kafka_server_brokertopicmetrics_failedfetchrequestspersec_oneminuterate{_cluster=~\"$cluster\", _environment=\"$environment\"} * 60)",
+          "expr": "sum by (instance) (kafka_server_brokertopicmetrics_failedfetchrequestspersec_oneminuterate{_cluster=~\"$cluster\", _environment=\"$environment\"} * 60)",
           "instant": false,
-          "legendFormat": "Total Failed Fetch Requests",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
@@ -3930,7 +3958,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-green"
+                "color": "dark-green",
+                "value": null
               },
               {
                 "color": "dark-red",
@@ -4038,7 +4067,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-green"
+                "color": "dark-green",
+                "value": null
               },
               {
                 "color": "dark-red",
@@ -4144,7 +4174,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-green"
+                "color": "dark-green",
+                "value": null
               },
               {
                 "color": "dark-red",
@@ -4248,7 +4279,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -4289,9 +4321,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum without(area)(jvm_memory_used_bytes{_cluster=~\"$cluster\", _environment=\"$environment\"})",
+          "expr": "sum by (instance) (jvm_memory_used_bytes{_cluster=~\"$cluster\", _environment=\"$environment\"})",
           "instant": false,
-          "legendFormat": "{{instance}} {{area}} used",
+          "legendFormat": "{{instance}} used",
           "range": true,
           "refId": "A"
         },
@@ -4359,7 +4391,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -4454,7 +4487,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -4504,7 +4538,7 @@
           "format": "time_series",
           "instant": false,
           "interval": "",
-          "legendFormat": "{{server}}",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
@@ -4524,7 +4558,8 @@
             "mode": "percentage",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "orange",
@@ -4573,7 +4608,7 @@
           "exemplar": true,
           "expr": "rate(minio_node_process_cpu_total_seconds{job=~\"$scrape_jobs\"}[$__rate_interval])",
           "interval": "",
-          "legendFormat": "{{server}}",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
@@ -4628,7 +4663,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -4671,7 +4707,7 @@
           "format": "time_series",
           "instant": false,
           "interval": "",
-          "legendFormat": "Node RChar [{{server}}]",
+          "legendFormat": "Node RChar [{{instance}}]",
           "refId": "A"
         },
         {
@@ -4682,7 +4718,7 @@
           "exemplar": true,
           "expr": "rate(minio_node_io_wchar_bytes{job=~\"$scrape_jobs\"}[$__rate_interval])",
           "interval": "",
-          "legendFormat": "Node WChar [{{server}}]",
+          "legendFormat": "Node WChar [{{instance}}]",
           "refId": "B"
         }
       ],
@@ -4834,8 +4870,8 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "VKR Dashboard: Kafka Tiered Storage + MinIO",
-  "uid": "vkr-kafka-tiered-minio",
-  "version": 3,
+  "title": "VKR Dashboard: Kafka Tiered Storage + MinIO v2",
+  "uid": "vkr-kafka-tiered-minio-v2",
+  "version": 1,
   "weekStart": ""
 }
